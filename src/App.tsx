@@ -83,6 +83,11 @@ export function App() {
               error_message: payload.error_message,
               stage_message: payload.stage_message !== undefined ? payload.stage_message : old.stage_message,
               is_media: payload.is_media !== undefined ? payload.is_media : old.is_media,
+              thumbnail_url: payload.thumbnail_url !== undefined ? payload.thumbnail_url : old.thumbnail_url,
+              media_thumbnail: payload.media_thumbnail !== undefined ? payload.media_thumbnail : old.media_thumbnail,
+              duration_seconds: payload.duration_seconds !== undefined ? payload.duration_seconds : old.duration_seconds,
+              media_duration: payload.media_duration !== undefined ? payload.media_duration : old.media_duration,
+              resolution: payload.resolution !== undefined ? payload.resolution : old.resolution,
               updated_at: Date.now(),
             };
             return updated;
@@ -101,6 +106,11 @@ export function App() {
                 error_message: payload.error_message,
                 stage_message: payload.stage_message !== undefined ? payload.stage_message : prev.stage_message,
                 is_media: payload.is_media !== undefined ? payload.is_media : prev.is_media,
+                thumbnail_url: payload.thumbnail_url !== undefined ? payload.thumbnail_url : prev.thumbnail_url,
+                media_thumbnail: payload.media_thumbnail !== undefined ? payload.media_thumbnail : prev.media_thumbnail,
+                duration_seconds: payload.duration_seconds !== undefined ? payload.duration_seconds : prev.duration_seconds,
+                media_duration: payload.media_duration !== undefined ? payload.media_duration : prev.media_duration,
+                resolution: payload.resolution !== undefined ? payload.resolution : prev.resolution,
               };
             }
             return prev;
@@ -233,6 +243,9 @@ export function App() {
     fileName?: string;
     connections: number;
     formatId?: string;
+    resolution?: string;
+    thumbnailUrl?: string;
+    durationSeconds?: number;
   }) => {
     const newTask = await startDownload(params);
     setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)]);

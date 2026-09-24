@@ -84,6 +84,15 @@ pub enum SocialMediaPlatform {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MediaGalleryItem {
+    pub url: String,
+    pub thumbnail_url: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub index: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MediaFormatOption {
     pub format_id: String,
     pub quality_label: String,
@@ -104,6 +113,8 @@ pub struct MediaMetadata {
     pub platform_level: u8,
     pub platform_display: String,
     pub formats: Vec<MediaFormatOption>,
+    #[serde(default)]
+    pub gallery_items: Vec<MediaGalleryItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -137,11 +148,17 @@ pub struct DownloadTask {
     #[serde(default)]
     pub media_thumbnail: Option<String>,
     #[serde(default)]
+    pub thumbnail_url: Option<String>,
+    #[serde(default)]
     pub media_duration: Option<u64>,
+    #[serde(default)]
+    pub duration_seconds: Option<u64>,
     #[serde(default)]
     pub media_platform: Option<String>,
     #[serde(default)]
     pub media_format: Option<String>,
+    #[serde(default)]
+    pub resolution: Option<String>,
     #[serde(default)]
     pub stage_message: Option<String>,
 }
@@ -178,9 +195,12 @@ impl DownloadTask {
             error_message: None,
             is_media: false,
             media_thumbnail: None,
+            thumbnail_url: None,
             media_duration: None,
+            duration_seconds: None,
             media_platform: None,
             media_format: None,
+            resolution: None,
             stage_message: None,
         }
     }
@@ -234,6 +254,16 @@ pub struct DownloadProgressPayload {
     #[serde(default)]
     pub is_media: bool,
     #[serde(default)]
+    pub media_thumbnail: Option<String>,
+    #[serde(default)]
+    pub thumbnail_url: Option<String>,
+    #[serde(default)]
+    pub media_duration: Option<u64>,
+    #[serde(default)]
+    pub duration_seconds: Option<u64>,
+    #[serde(default)]
+    pub resolution: Option<String>,
+    #[serde(default)]
     pub stage_message: Option<String>,
 }
 
@@ -264,6 +294,11 @@ impl From<&DownloadTask> for DownloadProgressPayload {
             segments: task.segments.clone(),
             error_message: task.error_message.clone(),
             is_media: task.is_media,
+            media_thumbnail: task.media_thumbnail.clone(),
+            thumbnail_url: task.thumbnail_url.clone().or_else(|| task.media_thumbnail.clone()),
+            media_duration: task.media_duration,
+            duration_seconds: task.duration_seconds.or(task.media_duration),
+            resolution: task.resolution.clone(),
             stage_message: task.stage_message.clone(),
         }
     }
@@ -403,5 +438,35 @@ mod tests {
         // Deserialization of unknown strings should map to Other
         let deserialized: SocialMediaPlatform = serde_json::from_str("\"instagram\"").unwrap();
         assert_eq!(deserialized, SocialMediaPlatform::Other);
+    }
+
+    #[test]
+    fn test_gallery_items_and_metadata_serialization() {
+        let gallery_item = MediaGalleryItem {
+            url: "https://pbs.twimg.com/media/test.jpg".to_string(),
+            thumbnail_url: Some("https://pbs.twimg.com/media/test_thumb.jpg".to_string()),
+            width: Some(1920),
+            height: Some(1080),
+            index: 0,
+        };
+
+        let mut task = DownloadTask::new(
+            "img-1".to_string(),
+            "https://pbs.twimg.com/media/test.jpg".to_string(),
+            "/downloads/test.jpg".to_string(),
+            "test.jpg".to_string(),
+            Some(1024),
+            true,
+            None,
+            4,
+        );
+        task.resolution = Some("1920x1080".to_string());
+        task.thumbnail_url = gallery_item.thumbnail_url.clone();
+        task.media_thumbnail = gallery_item.thumbnail_url.clone();
+
+        let json = serde_json::to_string(&task).expect("serialize task");
+        let deserialized: DownloadTask = serde_json::from_str(&json).expect("deserialize task");
+        assert_eq!(deserialized.resolution, Some("1920x1080".to_string()));
+        assert_eq!(deserialized.thumbnail_url, gallery_item.thumbnail_url);
     }
 }

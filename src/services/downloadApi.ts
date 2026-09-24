@@ -15,6 +15,9 @@ export interface StartDownloadParams {
   fileName?: string;
   connections?: number;
   formatId?: string;
+  resolution?: string;
+  thumbnailUrl?: string;
+  durationSeconds?: number;
 }
 
 export async function probeUrl(url: string): Promise<ProbeResult> {
@@ -29,6 +32,9 @@ export async function startDownload(params: StartDownloadParams): Promise<Downlo
     fileName: params.fileName,
     connections: params.connections,
     formatId: params.formatId,
+    resolution: params.resolution,
+    thumbnailUrl: params.thumbnailUrl,
+    durationSeconds: params.durationSeconds,
   });
 }
 

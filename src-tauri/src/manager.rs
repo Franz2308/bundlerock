@@ -60,20 +60,48 @@ impl DownloadManager {
         if let Some((_platform, _level, _display)) = detect_platform(&normalized_url) {
             match probe_media(&self.client, &normalized_url).await {
                 Ok(media_info) => {
-                    let default_ext = media_info
-                        .formats
-                        .first()
-                        .map(|f| f.ext.as_str())
-                        .unwrap_or("mp4");
+                    let has_formats = !media_info.formats.is_empty();
+                    let default_ext = if has_formats {
+                        media_info
+                            .formats
+                            .first()
+                            .map(|f| f.ext.as_str())
+                            .unwrap_or("mp4")
+                    } else if let Some(first_gallery) = media_info.gallery_items.first() {
+                        let path = url::Url::parse(&first_gallery.url)
+                            .map(|u| u.path().to_ascii_lowercase())
+                            .unwrap_or_default();
+                        if path.ends_with(".png") || first_gallery.url.contains("format=png") {
+                            "png"
+                        } else if path.ends_with(".webp") || first_gallery.url.contains("format=webp") {
+                            "webp"
+                        } else {
+                            "jpg"
+                        }
+                    } else {
+                        "mp4"
+                    };
+
                     let clean_title = if media_info.title.trim().is_empty() {
-                        "video_multimedia"
+                        if !has_formats && !media_info.gallery_items.is_empty() {
+                            "galeria_imagenes"
+                        } else {
+                            "video_multimedia"
+                        }
                     } else {
                         &media_info.title
                     };
+
                     let sanitized = crate::probe::sanitize_filename(clean_title);
                     let stem = sanitized.strip_suffix(".bin").unwrap_or(&sanitized);
                     let file_name = format!("{stem}.{default_ext}");
                     let approx_size = media_info.formats.first().and_then(|f| f.filesize_approx);
+
+                    let content_type = if !has_formats && !media_info.gallery_items.is_empty() {
+                        Some(format!("image/{default_ext}"))
+                    } else {
+                        Some(format!("video/{default_ext}"))
+                    };
 
                     return Ok(ProbeResult {
                         url: normalized_url,
@@ -81,7 +109,7 @@ impl DownloadManager {
                         content_length: approx_size,
                         accept_ranges: true,
                         etag: None,
-                        content_type: Some(format!("video/{default_ext}")),
+                        content_type,
                         suggested_connections: 4,
                         media_info: Some(media_info),
                     });
@@ -113,6 +141,9 @@ impl DownloadManager {
         custom_file_name: Option<String>,
         connections: Option<usize>,
         format_id: Option<String>,
+        resolution: Option<String>,
+        thumbnail_url: Option<String>,
+        duration_seconds: Option<u64>,
         app_handle: Option<tauri::AppHandle>,
     ) -> Result<DownloadTask, String> {
         // Step 1: Probe URL
@@ -126,24 +157,36 @@ impl DownloadManager {
 
         let base_destination = match save_path {
             Some(ref path_str) => {
-                let p = PathBuf::from(path_str);
-                if p.is_dir() || path_str.ends_with('/') || path_str.ends_with('\\') {
+                let mut p = PathBuf::from(path_str);
+                if !p.is_absolute() {
+                    p = get_default_download_dir().join(p);
+                }
+                if p.is_dir()
+                    || path_str.ends_with('/')
+                    || path_str.ends_with('\\')
+                    || (p.extension().is_none() && custom_file_name.is_some())
+                {
                     p.join(&initial_name)
                 } else if custom_file_name.is_none() && p.extension().is_some() {
                     p
                 } else {
-                    p.parent().unwrap_or(&p).join(&initial_name)
+                    p.join(&initial_name)
                 }
             }
             None => get_default_download_dir().join(&initial_name),
         };
 
-        // If not explicitly naming a custom file, ensure unique name to avoid clobbering existing files
-        let destination_path = if custom_file_name.is_none() && base_destination.exists() {
+        // Ensure unique name to avoid clobbering existing files on disk
+        let destination_path = if base_destination.exists() {
             resolve_unique_file_path(base_destination)
         } else {
             base_destination
         };
+
+        // Ensure parent directory exists
+        if let Some(parent) = destination_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
 
         let file_name = destination_path
             .file_name()
@@ -165,6 +208,13 @@ impl DownloadManager {
             num_connections,
         );
 
+        // Set rich metadata
+        task.resolution = resolution;
+        task.thumbnail_url = thumbnail_url.clone();
+        task.media_thumbnail = thumbnail_url;
+        task.duration_seconds = duration_seconds;
+        task.media_duration = duration_seconds;
+
         // Check if multimedia task
         if let Some(media) = probe.media_info {
             if crate::media_extractor::find_ytdlp().is_none() {
@@ -172,14 +222,33 @@ impl DownloadManager {
             }
 
             task.is_media = true;
-            task.media_thumbnail = media.thumbnail_url;
-            task.media_duration = media.duration_seconds;
+            if task.thumbnail_url.is_none() {
+                task.thumbnail_url = media.thumbnail_url.clone();
+                task.media_thumbnail = media.thumbnail_url;
+            }
+            if task.duration_seconds.is_none() {
+                task.duration_seconds = media.duration_seconds;
+                task.media_duration = media.duration_seconds;
+            }
             task.media_platform = Some(format!(
                 "{} (Nivel {})",
                 media.platform_display, media.platform_level
             ));
             task.media_format = format_id.clone();
             task.status = DownloadStatus::Downloading;
+
+            if task.resolution.is_none() {
+                if let Some(ref fid) = format_id {
+                    if let Some(fmt_opt) = media.formats.iter().find(|f| &f.format_id == fid) {
+                        task.resolution = fmt_opt.resolution.clone();
+                    }
+                }
+                if task.resolution.is_none() {
+                    if let Some(first_fmt) = media.formats.first() {
+                        task.resolution = first_fmt.resolution.clone();
+                    }
+                }
+            }
 
             let total = task.total_bytes.unwrap_or(0);
             task.segments = vec![DownloadSegment::new(

@@ -20,12 +20,25 @@ pub async fn start_download(
     file_name: Option<String>,
     connections: Option<usize>,
     format_id: Option<String>,
+    resolution: Option<String>,
+    thumbnail_url: Option<String>,
+    duration_seconds: Option<u64>,
     app: AppHandle,
     manager: State<'_, DownloadManager>,
 ) -> Result<DownloadTask, String> {
     let final_path = save_path.or(destination_path);
     manager
-        .start_download(&url, final_path, file_name, connections, format_id, Some(app))
+        .start_download(
+            &url,
+            final_path,
+            file_name,
+            connections,
+            format_id,
+            resolution,
+            thumbnail_url,
+            duration_seconds,
+            Some(app),
+        )
         .await
 }
 

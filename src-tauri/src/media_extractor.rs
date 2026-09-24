@@ -1,6 +1,6 @@
 use crate::models::{
     DownloadProgressPayload, DownloadSegment, DownloadStatus, DownloadTask, ExtractorStatus,
-    MediaFormatOption, MediaMetadata, SegmentStatus, SocialMediaPlatform,
+    MediaFormatOption, MediaGalleryItem, MediaMetadata, SegmentStatus, SocialMediaPlatform,
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -25,6 +25,22 @@ pub fn detect_platform(url_str: &str) -> Option<(SocialMediaPlatform, u8, String
         .or_else(|_| Url::parse(&format!("https://{clean}")))
         .ok()?;
     let host = parsed.host_str()?.to_ascii_lowercase();
+
+    // If URL path points directly to a static image file or image CDN, treat as direct accelerated download
+    let path_lower = parsed.path().to_ascii_lowercase();
+    if path_lower.ends_with(".jpg")
+        || path_lower.ends_with(".jpeg")
+        || path_lower.ends_with(".png")
+        || path_lower.ends_with(".webp")
+        || path_lower.ends_with(".gif")
+        || path_lower.ends_with(".svg")
+        || path_lower.ends_with(".bmp")
+        || host == "i.redd.it"
+        || host == "preview.redd.it"
+        || host == "pbs.twimg.com"
+    {
+        return None;
+    }
 
     // Level 1: YouTube
     if host == "youtube.com"
@@ -374,10 +390,16 @@ pub async fn probe_media(
     if let Some(ytdlp_path) = find_ytdlp() {
         let mut cmd = tokio::process::Command::new(&ytdlp_path);
         cmd.arg("--dump-single-json")
-            .arg("--no-playlist")
             .arg("--no-warnings")
-            .arg("--skip-download")
-            .arg(target_url);
+            .arg("--skip-download");
+
+        if platform == SocialMediaPlatform::YouTube {
+            cmd.arg("--no-playlist");
+        } else {
+            cmd.arg("--playlist-items").arg("1-20");
+        }
+
+        cmd.arg(target_url);
 
         #[cfg(windows)]
         {
@@ -395,19 +417,40 @@ pub async fn probe_media(
                         trimmed
                     };
                     if let Ok(parsed_json) = serde_json::from_str::<serde_json::Value>(json_payload) {
-                        return Ok(build_media_metadata_from_ytdlp_json(
+                        let mut meta = build_media_metadata_from_ytdlp_json(
                             parsed_json,
-                            platform,
+                            platform.clone(),
                             level,
-                            platform_display,
-                        ));
+                            platform_display.clone(),
+                        );
+
+                        // If gallery_items was not extracted by yt-dlp, enrich with platform-specific extractors
+                        if meta.gallery_items.is_empty() {
+                            match platform {
+                                SocialMediaPlatform::Twitter => {
+                                    let (_, _, _, tw_items) = extract_twitter_data(client, target_url).await;
+                                    if !tw_items.is_empty() {
+                                        meta.gallery_items = tw_items;
+                                    }
+                                }
+                                SocialMediaPlatform::Reddit => {
+                                    let (_, _, _, _, _, r_items) = extract_reddit_data(client, target_url).await;
+                                    if !r_items.is_empty() {
+                                        meta.gallery_items = r_items;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+
+                        return Ok(meta);
                     }
                 }
             }
         }
     }
 
-    // Fallback: Use platform oEmbed / open APIs to extract title, thumbnail, and author
+    // Fallback: Use platform APIs to extract title, thumbnail, author and gallery items
     probe_media_fallback(client, target_url, platform, level, platform_display).await
 }
 
@@ -501,108 +544,146 @@ fn build_media_metadata_from_ytdlp_json(
     available_heights.sort_unstable();
     available_heights.reverse(); // descending
 
-    let max_height = available_heights.first().copied().unwrap_or(720);
+    let has_real_formats = json
+        .get("formats")
+        .and_then(|v| v.as_array())
+        .map(|a| !a.is_empty())
+        .unwrap_or(false);
+    let has_video_or_audio = has_real_formats || !available_heights.is_empty() || has_audio;
 
     let mut formats_list = Vec::new();
 
-    // 1. Max quality original
-    formats_list.push(MediaFormatOption {
-        format_id: "bestvideo+bestaudio/best".to_string(),
-        quality_label: format!("Máxima Calidad ({max_height}p)"),
-        ext: "mp4".to_string(),
-        resolution: Some(format!("{max_height}p")),
-        filesize_approx: estimated_size_best,
-        is_audio_only: false,
-        format_note: Some("Mejor pista de video y audio combinadas sin pérdida".to_string()),
-    });
+    if has_video_or_audio {
+        let max_height = available_heights.first().copied().unwrap_or(720);
 
-    // 2. 1440p (2K QHD) if available
-    if max_height >= 1440 {
+        // 1. Max quality original
         formats_list.push(MediaFormatOption {
-            format_id: "bestvideo[height<=1440]+bestaudio/best[height<=1440]/best".to_string(),
-            quality_label: "1440p (2K QHD)".to_string(),
+            format_id: "bestvideo+bestaudio/best".to_string(),
+            quality_label: format!("Máxima Calidad ({max_height}p)"),
             ext: "mp4".to_string(),
-            resolution: Some("2560x1440".to_string()),
-            filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.90) as u64),
+            resolution: Some(format!("{max_height}p")),
+            filesize_approx: estimated_size_best,
             is_audio_only: false,
-            format_note: Some("Resolución 2K Quad HD con audio de alta fidelidad".to_string()),
+            format_note: Some("Mejor pista de video y audio combinadas sin pérdida".to_string()),
         });
+
+        // 2. 1440p (2K QHD) if available
+        if max_height >= 1440 {
+            formats_list.push(MediaFormatOption {
+                format_id: "bestvideo[height<=1440]+bestaudio/best[height<=1440]/best".to_string(),
+                quality_label: "1440p (2K QHD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("2560x1440".to_string()),
+                filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.90) as u64),
+                is_audio_only: false,
+                format_note: Some("Resolución 2K Quad HD con audio de alta fidelidad".to_string()),
+            });
+        }
+
+        // 3. 1080p (Full HD) if available
+        if max_height >= 1080 {
+            formats_list.push(MediaFormatOption {
+                format_id: "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best".to_string(),
+                quality_label: "1080p (Full HD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("1920x1080".to_string()),
+                filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.75) as u64),
+                is_audio_only: false,
+                format_note: Some("Resolución Full HD 1080p con audio estéreo".to_string()),
+            });
+        }
+
+        // 4. 720p (HD)
+        if max_height >= 720 {
+            formats_list.push(MediaFormatOption {
+                format_id: "bestvideo[height<=720]+bestaudio/best[height<=720]/best".to_string(),
+                quality_label: "720p (HD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("1280x720".to_string()),
+                filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.5) as u64),
+                is_audio_only: false,
+                format_note: Some("Resolución de alta definición estándar".to_string()),
+            });
+        }
+
+        // 5. 480p (SD)
+        if max_height >= 480 {
+            formats_list.push(MediaFormatOption {
+                format_id: "bestvideo[height<=480]+bestaudio/best[height<=480]/best".to_string(),
+                quality_label: "480p (SD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("854x480".to_string()),
+                filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.3) as u64),
+                is_audio_only: false,
+                format_note: Some("Calidad equilibrada y descarga rápida".to_string()),
+            });
+        }
+
+        // 6. 360p (Data saver)
+        if max_height >= 360 {
+            formats_list.push(MediaFormatOption {
+                format_id: "bestvideo[height<=360]+bestaudio/best[height<=360]/best".to_string(),
+                quality_label: "360p (Bajo Consumo)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("640x360".to_string()),
+                filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.18) as u64),
+                is_audio_only: false,
+                format_note: Some("Tamaño compacto para ahorrar espacio".to_string()),
+            });
+        }
+
+        // 7. Audio Only MP3
+        if has_audio || true {
+            formats_list.push(MediaFormatOption {
+                format_id: "audio-mp3".to_string(),
+                quality_label: "Solo Audio (MP3)".to_string(),
+                ext: "mp3".to_string(),
+                resolution: None,
+                filesize_approx: duration_seconds.map(|d| d * 24_000), // ~192kbps
+                is_audio_only: true,
+                format_note: Some("Extrae y convierte la pista de audio a MP3".to_string()),
+            });
+
+            // 8. Audio Only M4A (Original without re-encoding)
+            formats_list.push(MediaFormatOption {
+                format_id: "bestaudio[ext=m4a]/bestaudio/best".to_string(),
+                quality_label: "Solo Audio (M4A / AAC)".to_string(),
+                ext: "m4a".to_string(),
+                resolution: None,
+                filesize_approx: duration_seconds.map(|d| d * 16_000), // ~128kbps
+                is_audio_only: true,
+                format_note: Some("Pista de audio original sin pérdida de recompresión".to_string()),
+            });
+        }
     }
 
-    // 3. 1080p (Full HD) if available
-    if max_height >= 1080 {
-        formats_list.push(MediaFormatOption {
-            format_id: "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best".to_string(),
-            quality_label: "1080p (Full HD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("1920x1080".to_string()),
-            filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.75) as u64),
-            is_audio_only: false,
-            format_note: Some("Resolución Full HD 1080p con audio estéreo".to_string()),
-        });
-    }
+    let mut gallery_items = Vec::new();
+    if let Some(entries) = json.get("entries").and_then(|v| v.as_array()) {
+        for (idx, entry) in entries.iter().enumerate() {
+            let mut img_url = entry.get("url").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let thumb = entry.get("thumbnail").and_then(|v| v.as_str()).map(|s| s.to_string())
+                .or_else(|| img_url.clone());
+            let w = entry.get("width").and_then(|v| v.as_u64()).map(|v| v as u32);
+            let h = entry.get("height").and_then(|v| v.as_u64()).map(|v| v as u32);
 
-    // 4. 720p (HD)
-    if max_height >= 720 {
-        formats_list.push(MediaFormatOption {
-            format_id: "bestvideo[height<=720]+bestaudio/best[height<=720]/best".to_string(),
-            quality_label: "720p (HD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("1280x720".to_string()),
-            filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.5) as u64),
-            is_audio_only: false,
-            format_note: Some("Resolución de alta definición estándar".to_string()),
-        });
-    }
+            if img_url.is_none() {
+                if let Some(thumbs) = entry.get("thumbnails").and_then(|v| v.as_array()) {
+                    if let Some(last_t) = thumbs.last().and_then(|t| t.get("url")).and_then(|v| v.as_str()) {
+                        img_url = Some(last_t.to_string());
+                    }
+                }
+            }
 
-    // 5. 480p (SD)
-    if max_height >= 480 {
-        formats_list.push(MediaFormatOption {
-            format_id: "bestvideo[height<=480]+bestaudio/best[height<=480]/best".to_string(),
-            quality_label: "480p (SD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("854x480".to_string()),
-            filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.3) as u64),
-            is_audio_only: false,
-            format_note: Some("Calidad equilibrada y descarga rápida".to_string()),
-        });
-    }
-
-    // 6. 360p (Data saver)
-    if max_height >= 360 {
-        formats_list.push(MediaFormatOption {
-            format_id: "bestvideo[height<=360]+bestaudio/best[height<=360]/best".to_string(),
-            quality_label: "360p (Bajo Consumo)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("640x360".to_string()),
-            filesize_approx: estimated_size_best.map(|s| (s as f64 * 0.18) as u64),
-            is_audio_only: false,
-            format_note: Some("Tamaño compacto para ahorrar espacio".to_string()),
-        });
-    }
-
-    // 7. Audio Only MP3
-    if has_audio || true {
-        formats_list.push(MediaFormatOption {
-            format_id: "audio-mp3".to_string(),
-            quality_label: "Solo Audio (MP3)".to_string(),
-            ext: "mp3".to_string(),
-            resolution: None,
-            filesize_approx: duration_seconds.map(|d| d * 24_000), // ~192kbps
-            is_audio_only: true,
-            format_note: Some("Extrae y convierte la pista de audio a MP3".to_string()),
-        });
-
-        // 8. Audio Only M4A (Original without re-encoding)
-        formats_list.push(MediaFormatOption {
-            format_id: "bestaudio[ext=m4a]/bestaudio/best".to_string(),
-            quality_label: "Solo Audio (M4A / AAC)".to_string(),
-            ext: "m4a".to_string(),
-            resolution: None,
-            filesize_approx: duration_seconds.map(|d| d * 16_000), // ~128kbps
-            is_audio_only: true,
-            format_note: Some("Pista de audio original sin pérdida de recompresión".to_string()),
-        });
+            if let Some(u) = img_url {
+                gallery_items.push(MediaGalleryItem {
+                    url: u,
+                    thumbnail_url: thumb,
+                    width: w,
+                    height: h,
+                    index: idx,
+                });
+            }
+        }
     }
 
     MediaMetadata {
@@ -614,7 +695,321 @@ fn build_media_metadata_from_ytdlp_json(
         platform_level: level,
         platform_display,
         formats: formats_list,
+        gallery_items,
     }
+}
+
+/// Extracts numeric status ID from a Twitter / X post URL
+pub fn extract_twitter_status_id(url: &str) -> Option<String> {
+    let clean = url.split('?').next()?;
+    let segments: Vec<&str> = clean.split('/').collect();
+    let status_pos = segments.iter().position(|&s| s == "status")?;
+    let candidate = segments.get(status_pos + 1)?;
+    if candidate.chars().all(|c| c.is_ascii_digit()) && !candidate.is_empty() {
+        Some(candidate.to_string())
+    } else {
+        None
+    }
+}
+
+/// Extracts images/photos and metadata from a Twitter/X post
+pub async fn extract_twitter_data(
+    client: &reqwest::Client,
+    target_url: &str,
+) -> (Option<String>, Option<String>, Option<String>, Vec<MediaGalleryItem>) {
+    let mut title = None;
+    let mut uploader = None;
+    let mut thumbnail_url = None;
+    let mut gallery_items = Vec::new();
+
+    let status_id = match extract_twitter_status_id(target_url) {
+        Some(id) => id,
+        None => return (title, uploader, thumbnail_url, gallery_items),
+    };
+
+    // 1. Try Twitter Public Syndication API
+    let syndication_url = format!("https://cdn.syndication.twimg.com/tweet-result?id={status_id}&token=5");
+    let resp = client
+        .get(&syndication_url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        )
+        .timeout(Duration::from_secs(8))
+        .send()
+        .await;
+
+    if let Ok(response) = resp {
+        if response.status().is_success() {
+            if let Ok(json) = response.json::<serde_json::Value>().await {
+                if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                    let clean_text = text.trim();
+                    if !clean_text.is_empty() {
+                        title = Some(clean_text.to_string());
+                    }
+                }
+
+                if let Some(user) = json.get("user") {
+                    if let Some(name) = user.get("name").and_then(|v| v.as_str()) {
+                        uploader = Some(name.to_string());
+                    }
+                }
+
+                // Check mediaDetails
+                if let Some(media_arr) = json.get("mediaDetails").and_then(|v| v.as_array()) {
+                    for item in media_arr {
+                        let m_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                        if m_type == "photo" {
+                            if let Some(url_str) = item.get("media_url_https").and_then(|v| v.as_str()) {
+                                let orig_url = format!("{url_str}?name=orig");
+                                let thumb = format!("{url_str}?name=small");
+                                let w = item.get("original_info")
+                                    .and_then(|oi| oi.get("width"))
+                                    .and_then(|v| v.as_u64())
+                                    .map(|v| v as u32);
+                                let h = item.get("original_info")
+                                    .and_then(|oi| oi.get("height"))
+                                    .and_then(|v| v.as_u64())
+                                    .map(|v| v as u32);
+
+                                gallery_items.push(MediaGalleryItem {
+                                    url: orig_url,
+                                    thumbnail_url: Some(thumb),
+                                    width: w,
+                                    height: h,
+                                    index: gallery_items.len(),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Fallback to photos array
+                if gallery_items.is_empty() {
+                    if let Some(photos_arr) = json.get("photos").and_then(|v| v.as_array()) {
+                        for item in photos_arr {
+                            if let Some(url_str) = item.get("url").and_then(|v| v.as_str()) {
+                                let orig_url = format!("{url_str}?name=orig");
+                                let thumb = format!("{url_str}?name=small");
+                                let w = item.get("width").and_then(|v| v.as_u64()).map(|v| v as u32);
+                                let h = item.get("height").and_then(|v| v.as_u64()).map(|v| v as u32);
+
+                                gallery_items.push(MediaGalleryItem {
+                                    url: orig_url,
+                                    thumbnail_url: Some(thumb),
+                                    width: w,
+                                    height: h,
+                                    index: gallery_items.len(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fallback to VxTwitter API if no gallery items were found
+    if gallery_items.is_empty() {
+        let vxtwitter_url = format!("https://api.vxtwitter.com/Twitter/status/{status_id}");
+        if let Ok(response) = client
+            .get(&vxtwitter_url)
+            .header("User-Agent", "Mozilla/5.0 BundleRock/0.1.0")
+            .timeout(Duration::from_secs(6))
+            .send()
+            .await
+        {
+            if response.status().is_success() {
+                if let Ok(json) = response.json::<serde_json::Value>().await {
+                    if title.is_none() {
+                        if let Some(text) = json.get("text").and_then(|v| v.as_str()) {
+                            title = Some(text.trim().to_string());
+                        }
+                    }
+                    if uploader.is_none() {
+                        if let Some(name) = json.get("user_name").and_then(|v| v.as_str()) {
+                            uploader = Some(name.to_string());
+                        }
+                    }
+
+                    if let Some(extended) = json.get("media_extended").and_then(|v| v.as_array()) {
+                        for item in extended {
+                            let t = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                            if t == "image" || t == "photo" {
+                                if let Some(u) = item.get("url").and_then(|v| v.as_str()) {
+                                    let w = item.get("size").and_then(|s| s.get("width")).and_then(|v| v.as_u64()).map(|v| v as u32);
+                                    let h = item.get("size").and_then(|s| s.get("height")).and_then(|v| v.as_u64()).map(|v| v as u32);
+                                    gallery_items.push(MediaGalleryItem {
+                                        url: u.to_string(),
+                                        thumbnail_url: Some(u.to_string()),
+                                        width: w,
+                                        height: h,
+                                        index: gallery_items.len(),
+                                    });
+                                }
+                            }
+                        }
+                    } else if let Some(media_urls) = json.get("mediaURLs").and_then(|v| v.as_array()) {
+                        for u in media_urls {
+                            if let Some(url_str) = u.as_str() {
+                                gallery_items.push(MediaGalleryItem {
+                                    url: url_str.to_string(),
+                                    thumbnail_url: Some(url_str.to_string()),
+                                    width: None,
+                                    height: None,
+                                    index: gallery_items.len(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(first_item) = gallery_items.first() {
+        thumbnail_url = first_item.thumbnail_url.clone().or_else(|| Some(first_item.url.clone()));
+    }
+
+    (title, uploader, thumbnail_url, gallery_items)
+}
+
+/// Extracts images/photos, video metadata, and gallery items from a Reddit post
+pub async fn extract_reddit_data(
+    client: &reqwest::Client,
+    target_url: &str,
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<u64>,
+    Option<String>,
+    Vec<MediaGalleryItem>,
+) {
+    let mut title = None;
+    let mut uploader = None;
+    let mut thumbnail_url = None;
+    let mut duration_seconds = None;
+    let mut resolution = None;
+    let mut gallery_items = Vec::new();
+
+    let reddit_clean = target_url.split('?').next().unwrap_or(target_url);
+    let json_url = format!("{}.json", reddit_clean.trim_end_matches('/'));
+
+    if let Ok(resp) = client
+        .get(&json_url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 BundleRock/0.1.0",
+        )
+        .timeout(Duration::from_secs(8))
+        .send()
+        .await
+    {
+        if resp.status().is_success() {
+            if let Ok(json) = resp.json::<serde_json::Value>().await {
+                if let Some(first_arr) = json.as_array().and_then(|a| a.first()) {
+                    if let Some(post) = first_arr
+                        .get("data")
+                        .and_then(|d| d.get("children"))
+                        .and_then(|c| c.as_array())
+                        .and_then(|a| a.first())
+                        .and_then(|p| p.get("data"))
+                    {
+                        if let Some(t) = post.get("title").and_then(|v| v.as_str()) {
+                            title = Some(t.to_string());
+                        }
+                        if let Some(a) = post.get("author").and_then(|v| v.as_str()) {
+                            uploader = Some(format!("u/{a}"));
+                        }
+                        if let Some(thumb) = post.get("thumbnail").and_then(|v| v.as_str()) {
+                            if thumb.starts_with("http") {
+                                thumbnail_url = Some(thumb.to_string());
+                            }
+                        }
+
+                        // Check video metadata
+                        let reddit_video = post
+                            .get("media")
+                            .and_then(|m| m.get("reddit_video"))
+                            .or_else(|| {
+                                post.get("secure_media")
+                                    .and_then(|m| m.get("reddit_video"))
+                            });
+
+                        if let Some(rv) = reddit_video {
+                            duration_seconds = rv.get("duration").and_then(|v| v.as_u64());
+                            if let Some(h) = rv.get("height").and_then(|v| v.as_u64()) {
+                                resolution = Some(format!("{h}p"));
+                            }
+                        }
+
+                        // Check gallery items
+                        if let Some(items) = post.get("gallery_data").and_then(|g| g.get("items")).and_then(|i| i.as_array()) {
+                            let media_meta = post.get("media_metadata");
+                            for (idx, item) in items.iter().enumerate() {
+                                if let Some(media_id) = item.get("media_id").and_then(|m| m.as_str()) {
+                                    let mut img_url = format!("https://i.redd.it/{media_id}.jpg");
+                                    let mut thumb = Some(format!("https://preview.redd.it/{media_id}.jpg?width=640&crop=smart&auto=webp&s="));
+                                    let mut w = None;
+                                    let mut h = None;
+
+                                    if let Some(meta) = media_meta.and_then(|mm| mm.get(media_id)) {
+                                        if let Some(s) = meta.get("s") {
+                                            if let Some(u) = s.get("u").and_then(|v| v.as_str()) {
+                                                let clean_u = u.replace("&amp;", "&");
+                                                img_url = clean_u.clone();
+                                                thumb = Some(clean_u);
+                                            }
+                                            w = s.get("x").and_then(|v| v.as_u64()).map(|x| x as u32);
+                                            h = s.get("y").and_then(|v| v.as_u64()).map(|y| y as u32);
+                                        }
+                                    }
+
+                                    gallery_items.push(MediaGalleryItem {
+                                        url: img_url,
+                                        thumbnail_url: thumb,
+                                        width: w,
+                                        height: h,
+                                        index: idx,
+                                    });
+                                }
+                            }
+                        }
+
+                        // If not a gallery, but post url is a direct image
+                        if gallery_items.is_empty() {
+                            if let Some(u) = post.get("url").and_then(|v| v.as_str()) {
+                                let u_lower = u.to_ascii_lowercase();
+                                if u_lower.ends_with(".jpg")
+                                    || u_lower.ends_with(".jpeg")
+                                    || u_lower.ends_with(".png")
+                                    || u_lower.ends_with(".webp")
+                                    || u_lower.ends_with(".gif")
+                                {
+                                    gallery_items.push(MediaGalleryItem {
+                                        url: u.to_string(),
+                                        thumbnail_url: Some(u.to_string()),
+                                        width: None,
+                                        height: None,
+                                        index: 0,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if thumbnail_url.is_none() {
+        if let Some(first) = gallery_items.first() {
+            thumbnail_url = first.thumbnail_url.clone().or_else(|| Some(first.url.clone()));
+        }
+    }
+
+    (title, uploader, thumbnail_url, duration_seconds, resolution, gallery_items)
 }
 
 /// Fallback metadata extraction using oEmbed / public JSON endpoints when yt-dlp is not present
@@ -628,7 +1023,8 @@ async fn probe_media_fallback(
     let mut title = "Video de Red Social".to_string();
     let mut uploader = None;
     let mut thumbnail_url = None;
-    let duration_seconds = None;
+    let mut duration_seconds = None;
+    let mut gallery_items = Vec::new();
 
     match platform {
         SocialMediaPlatform::YouTube => {
@@ -653,59 +1049,49 @@ async fn probe_media_fallback(
             }
         }
         SocialMediaPlatform::Twitter => {
-            let oembed_url =
-                format!("https://publish.twitter.com/oembed?url={target_url}&omit_script=true");
-            if let Ok(resp) = client
-                .get(&oembed_url)
-                .timeout(Duration::from_secs(6))
-                .send()
-                .await
-            {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(a) = json.get("author_name").and_then(|v| v.as_str()) {
-                        uploader = Some(a.to_string());
-                        title = format!("Publicación de {a} en X");
-                    }
-                }
-            }
-        }
-        SocialMediaPlatform::Reddit => {
-            let reddit_clean = target_url.split('?').next().unwrap_or(target_url);
-            let json_url = format!("{}.json", reddit_clean.trim_end_matches('/'));
-            if let Ok(resp) = client
-                .get(&json_url)
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 BundleRock/0.1.0 (Multimedia Prober)",
-                )
-                .timeout(Duration::from_secs(6))
-                .send()
-                .await
-            {
-                if let Ok(json) = resp.json::<serde_json::Value>().await {
-                    if let Some(first_arr) = json.as_array().and_then(|a| a.first()) {
-                        if let Some(post) = first_arr
-                            .get("data")
-                            .and_then(|d| d.get("children"))
-                            .and_then(|c| c.as_array())
-                            .and_then(|a| a.first())
-                            .and_then(|p| p.get("data"))
-                        {
-                            if let Some(t) = post.get("title").and_then(|v| v.as_str()) {
-                                title = t.to_string();
-                            }
-                            if let Some(a) = post.get("author").and_then(|v| v.as_str()) {
-                                uploader = Some(format!("u/{a}"));
-                            }
-                            if let Some(thumb) = post.get("thumbnail").and_then(|v| v.as_str()) {
-                                if thumb.starts_with("http") {
-                                    thumbnail_url = Some(thumb.to_string());
-                                }
-                            }
+            let (tw_title, tw_uploader, tw_thumb, tw_gallery) = extract_twitter_data(client, target_url).await;
+            if let Some(t) = tw_title {
+                title = t;
+            } else {
+                let oembed_url =
+                    format!("https://publish.twitter.com/oembed?url={target_url}&omit_script=true");
+                if let Ok(resp) = client
+                    .get(&oembed_url)
+                    .timeout(Duration::from_secs(6))
+                    .send()
+                    .await
+                {
+                    if let Ok(json) = resp.json::<serde_json::Value>().await {
+                        if let Some(a) = json.get("author_name").and_then(|v| v.as_str()) {
+                            uploader = Some(a.to_string());
+                            title = format!("Publicación de {a} en X");
                         }
                     }
                 }
             }
+            if let Some(a) = tw_uploader {
+                uploader = Some(a);
+            }
+            if let Some(th) = tw_thumb {
+                thumbnail_url = Some(th);
+            }
+            gallery_items = tw_gallery;
+        }
+        SocialMediaPlatform::Reddit => {
+            let (r_title, r_uploader, r_thumb, r_dur, _r_res, r_gallery) = extract_reddit_data(client, target_url).await;
+            if let Some(t) = r_title {
+                title = t;
+            }
+            if let Some(a) = r_uploader {
+                uploader = Some(a);
+            }
+            if let Some(th) = r_thumb {
+                thumbnail_url = Some(th);
+            }
+            if let Some(d) = r_dur {
+                duration_seconds = Some(d);
+            }
+            gallery_items = r_gallery;
         }
         SocialMediaPlatform::Facebook => {
             title = "Video de Facebook".to_string();
@@ -715,63 +1101,73 @@ async fn probe_media_fallback(
         }
     }
 
-    // Standard fallback formats list
-    let formats = vec![
-        MediaFormatOption {
-            format_id: "bestvideo+bestaudio/best".to_string(),
-            quality_label: "Máxima Calidad (Original)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("Original".to_string()),
-            filesize_approx: None,
-            is_audio_only: false,
-            format_note: Some("Mejor calidad de video y audio combinada".to_string()),
-        },
-        MediaFormatOption {
-            format_id: "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best".to_string(),
-            quality_label: "1080p (Full HD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("1920x1080".to_string()),
-            filesize_approx: None,
-            is_audio_only: false,
-            format_note: Some("Resolución Full HD con remux de audio".to_string()),
-        },
-        MediaFormatOption {
-            format_id: "bestvideo[height<=720]+bestaudio/best[height<=720]/best".to_string(),
-            quality_label: "720p (HD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("1280x720".to_string()),
-            filesize_approx: None,
-            is_audio_only: false,
-            format_note: Some("Resolución HD estándar".to_string()),
-        },
-        MediaFormatOption {
-            format_id: "bestvideo[height<=480]+bestaudio/best[height<=480]/best".to_string(),
-            quality_label: "480p (SD)".to_string(),
-            ext: "mp4".to_string(),
-            resolution: Some("854x480".to_string()),
-            filesize_approx: None,
-            is_audio_only: false,
-            format_note: Some("Resolución estándar equilibrada".to_string()),
-        },
-        MediaFormatOption {
-            format_id: "audio-mp3".to_string(),
-            quality_label: "Solo Audio (MP3)".to_string(),
-            ext: "mp3".to_string(),
-            resolution: None,
-            filesize_approx: None,
-            is_audio_only: true,
-            format_note: Some("Extraer y convertir a pista MP3".to_string()),
-        },
-        MediaFormatOption {
-            format_id: "bestaudio[ext=m4a]/bestaudio/best".to_string(),
-            quality_label: "Solo Audio (M4A / AAC)".to_string(),
-            ext: "m4a".to_string(),
-            resolution: None,
-            filesize_approx: None,
-            is_audio_only: true,
-            format_note: Some("Pista de audio original sin pérdida".to_string()),
-        },
-    ];
+    let has_video = match platform {
+        SocialMediaPlatform::Twitter => gallery_items.is_empty(),
+        SocialMediaPlatform::Reddit => duration_seconds.is_some() || gallery_items.is_empty(),
+        _ => true,
+    };
+
+    // Standard fallback formats list (only when post contains video/audio)
+    let formats = if has_video {
+        vec![
+            MediaFormatOption {
+                format_id: "bestvideo+bestaudio/best".to_string(),
+                quality_label: "Máxima Calidad (Original)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("Original".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Mejor calidad de video y audio combinada".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best".to_string(),
+                quality_label: "1080p (Full HD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("1920x1080".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Resolución Full HD con remux de audio".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "bestvideo[height<=720]+bestaudio/best[height<=720]/best".to_string(),
+                quality_label: "720p (HD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("1280x720".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Resolución HD estándar".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "bestvideo[height<=480]+bestaudio/best[height<=480]/best".to_string(),
+                quality_label: "480p (SD)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("854x480".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Resolución estándar equilibrada".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "audio-mp3".to_string(),
+                quality_label: "Solo Audio (MP3)".to_string(),
+                ext: "mp3".to_string(),
+                resolution: None,
+                filesize_approx: None,
+                is_audio_only: true,
+                format_note: Some("Extraer y convertir a pista MP3".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "bestaudio[ext=m4a]/bestaudio/best".to_string(),
+                quality_label: "Solo Audio (M4A / AAC)".to_string(),
+                ext: "m4a".to_string(),
+                resolution: None,
+                filesize_approx: None,
+                is_audio_only: true,
+                format_note: Some("Pista de audio original sin pérdida".to_string()),
+            },
+        ]
+    } else {
+        Vec::new()
+    };
 
     Ok(MediaMetadata {
         title,
@@ -782,6 +1178,7 @@ async fn probe_media_fallback(
         platform_level: level,
         platform_display,
         formats,
+        gallery_items,
     })
 }
 
@@ -839,6 +1236,10 @@ pub async fn download_media_stream(
 
     let mut cmd = tokio::process::Command::new(&ytdlp_path);
     cmd.arg(&task.url);
+
+    // Multi-threaded fragment downloading for DASH and HLS streams
+    let concurrent_frags = task.num_connections.max(1);
+    cmd.arg("--concurrent-fragments").arg(concurrent_frags.to_string());
 
     // Standard output template with %(ext)s prevents duplicated extensions (.mp4.mp4 / .mp3.mp3)
     let output_template = parent_dir.join(format!("{stem}.%(ext)s"));
@@ -1313,5 +1714,65 @@ mod tests {
         assert!(format_labels.iter().any(|l| l.contains("1080p")));
         assert!(format_labels.iter().any(|l| l.contains("720p")));
         assert!(format_labels.iter().any(|l| l.contains("Audio")));
+    }
+
+    #[test]
+    fn test_extract_twitter_status_id() {
+        assert_eq!(
+            extract_twitter_status_id("https://twitter.com/nasa/status/1234567890"),
+            Some("1234567890".to_string())
+        );
+        assert_eq!(
+            extract_twitter_status_id("https://x.com/rustlang/status/987654321?s=20"),
+            Some("987654321".to_string())
+        );
+        assert_eq!(
+            extract_twitter_status_id("https://youtube.com/watch?v=12345"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_direct_images_bypass_social_media() {
+        assert_eq!(detect_platform("https://i.redd.it/my_photo.jpg"), None);
+        assert_eq!(detect_platform("https://pbs.twimg.com/media/photo.png"), None);
+        assert_eq!(detect_platform("https://preview.redd.it/image.webp"), None);
+        assert_eq!(detect_platform("https://example.com/picture.jpeg"), None);
+    }
+
+    #[test]
+    fn test_gallery_items_extraction_from_ytdlp_json() {
+        let raw_json = serde_json::json!({
+            "title": "Post with 2 images",
+            "uploader": "Artist",
+            "entries": [
+                {
+                    "url": "https://pbs.twimg.com/media/img1.jpg",
+                    "thumbnail": "https://pbs.twimg.com/media/img1_thumb.jpg",
+                    "width": 1920,
+                    "height": 1080
+                },
+                {
+                    "url": "https://pbs.twimg.com/media/img2.jpg",
+                    "thumbnail": "https://pbs.twimg.com/media/img2_thumb.jpg",
+                    "width": 1280,
+                    "height": 720
+                }
+            ],
+            "formats": []
+        });
+
+        let metadata = build_media_metadata_from_ytdlp_json(
+            raw_json,
+            SocialMediaPlatform::Twitter,
+            1,
+            "X (Twitter)".to_string(),
+        );
+
+        assert_eq!(metadata.gallery_items.len(), 2);
+        assert_eq!(metadata.gallery_items[0].url, "https://pbs.twimg.com/media/img1.jpg");
+        assert_eq!(metadata.gallery_items[0].width, Some(1920));
+        assert_eq!(metadata.gallery_items[1].index, 1);
+        assert_eq!(metadata.formats.len(), 0);
     }
 }

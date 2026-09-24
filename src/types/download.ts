@@ -16,6 +16,14 @@ export type SocialMediaPlatform =
   | 'reddit'
   | 'other';
 
+export interface MediaGalleryItem {
+  url: string;
+  thumbnail_url?: string | null;
+  width?: number | null;
+  height?: number | null;
+  index: number;
+}
+
 export interface MediaFormatOption {
   format_id: string;
   quality_label: string;
@@ -35,6 +43,7 @@ export interface MediaMetadata {
   platform_level: number;
   platform_display: string;
   formats: MediaFormatOption[];
+  gallery_items?: MediaGalleryItem[];
 }
 
 export interface ExtractorStatus {
@@ -73,9 +82,12 @@ export interface DownloadTask {
   error_message: string | null;
   is_media?: boolean;
   media_thumbnail?: string | null;
+  thumbnail_url?: string | null;
   media_duration?: number | null;
+  duration_seconds?: number | null;
   media_platform?: string | null;
   media_format?: string | null;
+  resolution?: string | null;
   stage_message?: string | null;
 }
 
@@ -103,6 +115,11 @@ export interface DownloadProgressPayload {
   segments: DownloadSegment[];
   error_message: string | null;
   is_media?: boolean;
+  media_thumbnail?: string | null;
+  thumbnail_url?: string | null;
+  media_duration?: number | null;
+  duration_seconds?: number | null;
+  resolution?: string | null;
   stage_message?: string | null;
 }
 

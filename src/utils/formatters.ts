@@ -100,3 +100,49 @@ export function formatRelativeTime(timestamp: number): string {
   const diffDays = Math.floor(diffHours / 24);
   return `hace ${diffDays} d`;
 }
+
+export function formatDuration(secs?: number | null): string {
+  if (!secs || secs <= 0) return '';
+  const totalSecs = Math.floor(secs);
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  if (h > 0) {
+    return `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${remM}:${s.toString().padStart(2, '0')}`;
+}
+
+export function formatResolutionLabel(res?: string | null, isImage = false): string {
+  if (!res) return '';
+  const trimmed = res.trim();
+
+  if (isImage) {
+    if (trimmed.includes('x')) {
+      const [w, h] = trimmed.split('x');
+      if (w && h) return `${w} × ${h} px`;
+    }
+    return `${trimmed} px`;
+  }
+
+  if (trimmed === '1920x1080' || trimmed.toLowerCase() === '1080p') {
+    return '1080p Full HD';
+  }
+  if (trimmed === '2560x1440' || trimmed.toLowerCase() === '1440p') {
+    return '1440p 2K QHD';
+  }
+  if (trimmed === '3840x2160' || trimmed.toLowerCase() === '2160p' || trimmed.toLowerCase() === '4k') {
+    return '4K Ultra HD';
+  }
+  if (trimmed === '1280x720' || trimmed.toLowerCase() === '720p') {
+    return '720p HD';
+  }
+  if (trimmed === '854x480' || trimmed.toLowerCase() === '480p') {
+    return '480p SD';
+  }
+  if (trimmed === '640x360' || trimmed.toLowerCase() === '360p') {
+    return '360p SD';
+  }
+  return trimmed;
+}

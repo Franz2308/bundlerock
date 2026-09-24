@@ -13,6 +13,10 @@ import {
   Clock,
   CheckCircle2,
   DownloadCloud,
+  Images,
+  CheckSquare,
+  FolderPlus,
+  Folder,
 } from 'lucide-react';
 import { ExtractorStatus, MediaFormatOption, ProbeResult } from '../types/download';
 import { formatBytes } from '../utils/formatters';
@@ -33,6 +37,9 @@ interface NewDownloadModalProps {
     fileName?: string;
     connections: number;
     formatId?: string;
+    resolution?: string;
+    thumbnailUrl?: string;
+    durationSeconds?: number;
   }) => Promise<void>;
 }
 
@@ -56,7 +63,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   const [url, setUrl] = useState('');
   const [fileName, setFileName] = useState('');
   const [savePath, setSavePath] = useState('');
-  const [connections, setConnections] = useState<number>(16);
+  const [connections, setConnections] = useState<number>(4);
   const [probing, setProbing] = useState(false);
   const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
   const [probeError, setProbeError] = useState<string | null>(null);
@@ -69,6 +76,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   const [installSuccess, setInstallSuccess] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
 
+  // Gallery states
+  const [selectedImageIndices, setSelectedImageIndices] = useState<Set<number>>(new Set());
+  const [folderOrganization, setFolderOrganization] = useState<'subfolder' | 'loose'>('subfolder');
+  const [activeTab, setActiveTab] = useState<'video' | 'gallery'>('video');
+
   // Initialize and check clipboard on open
   useEffect(() => {
     if (!isOpen) {
@@ -80,6 +92,9 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       setSelectedFormatId('');
       setInstallSuccess(false);
       setInstallError(null);
+      setSelectedImageIndices(new Set());
+      setFolderOrganization('subfolder');
+      setActiveTab('video');
       return;
     }
 
@@ -122,6 +137,16 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       setProbeResult(res);
       setFileName(res.file_name);
 
+      const gallery = res.media_info?.gallery_items || [];
+
+      if (gallery.length > 0) {
+        setSelectedImageIndices(new Set(gallery.map((_, i) => i)));
+        setActiveTab('gallery');
+      } else {
+        setSelectedImageIndices(new Set());
+        setActiveTab('video');
+      }
+
       if (res.media_info && res.media_info.formats.length > 0) {
         // Select first format by default
         const defaultFmt = res.media_info.formats[0];
@@ -154,6 +179,27 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
       setFileName(`${baseName}.${fmt.ext}`);
     }
+  };
+
+  const toggleSelectImage = (index: number) => {
+    setSelectedImageIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const selectAllImages = () => {
+    const gallery = probeResult?.media_info?.gallery_items || [];
+    setSelectedImageIndices(new Set(gallery.map((_, i) => i)));
+  };
+
+  const deselectAllImages = () => {
+    setSelectedImageIndices(new Set());
   };
 
   const handleInstallExtractor = async () => {
@@ -194,14 +240,104 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     e.preventDefault();
     if (!url.trim() || starting) return;
 
+    const media = probeResult?.media_info;
+    const gallery = media?.gallery_items || [];
+    const isGalleryMode =
+      gallery.length > 0 &&
+      (activeTab === 'gallery' || !media?.formats || media.formats.length === 0);
+
+    // Gallery Download Mode
+    if (isGalleryMode) {
+      if (selectedImageIndices.size === 0) return;
+      setStarting(true);
+      try {
+        const baseDir = savePath.trim() || undefined;
+        // Clean and sanitize post title for filesystem folder and file naming
+        const rawTitle = (media?.title || fileName || 'galeria_imagenes')
+          .replace(/https?:\/\/\S+/g, '') // remove URLs
+          .replace(/[\r\n\t]+/g, ' ') // replace newlines/tabs with space
+          .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') // Windows invalid path chars
+          .replace(/\s+/g, ' ') // collapse spaces
+          .replace(/_+/g, '_') // collapse underscores
+          .trim()
+          .replace(/[. ]+$/, ''); // Windows forbids trailing dots or spaces
+
+        const cleanTitle =
+          (rawTitle.length > 60 ? rawTitle.slice(0, 60).trim().replace(/[. ]+$/, '') : rawTitle) ||
+          'galeria';
+
+        let targetDir = baseDir;
+        if (folderOrganization === 'subfolder' && (gallery.length > 1 || selectedImageIndices.size > 1)) {
+          targetDir = baseDir ? `${baseDir}/${cleanTitle}` : cleanTitle;
+        }
+
+        const selectedItems = gallery.filter((_, idx) => selectedImageIndices.has(idx));
+
+        for (const item of selectedItems) {
+          let ext = 'jpg';
+          try {
+            const u = new URL(item.url);
+            const fmt = u.searchParams.get('format');
+            if (fmt) {
+              ext = fmt.toLowerCase();
+            } else {
+              const extMatch = u.pathname.match(/\.([a-zA-Z0-9]+)$/);
+              if (extMatch) {
+                ext = extMatch[1].toLowerCase();
+              }
+            }
+          } catch {
+            ext = 'jpg';
+          }
+
+          const imgFileName = `${cleanTitle}_${item.index + 1}.${ext}`;
+          const resStr =
+            item.width && item.height ? `${item.width}x${item.height}` : undefined;
+
+          await onStartDownload({
+            url: item.url,
+            destinationPath: targetDir,
+            fileName: imgFileName,
+            connections: connections || 4,
+            resolution: resStr,
+            thumbnailUrl: item.thumbnail_url || item.url,
+          });
+        }
+        onClose();
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+            ? err
+            : 'Error al descargar las imágenes de la galería';
+        setProbeError(message);
+      } finally {
+        setStarting(false);
+      }
+      return;
+    }
+
+    // Video / Stream or Direct Download Mode
     setStarting(true);
     try {
+      let chosenRes: string | undefined = undefined;
+      if (media && selectedFormatId) {
+        const fmt = media.formats.find((f) => f.format_id === selectedFormatId);
+        if (fmt?.resolution) {
+          chosenRes = fmt.resolution;
+        }
+      }
+
       await onStartDownload({
         url: url.trim(),
         destinationPath: savePath.trim() || undefined,
         fileName: fileName.trim() || undefined,
-        connections: connections || 16,
+        connections: connections || 4,
         formatId: selectedFormatId || undefined,
+        resolution: chosenRes,
+        thumbnailUrl: media?.thumbnail_url || undefined,
+        durationSeconds: media?.duration_seconds || undefined,
       });
       onClose();
     } catch (err: unknown) {
@@ -220,6 +356,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   if (!isOpen) return null;
 
   const media = probeResult?.media_info;
+  const gallery = media?.gallery_items || [];
+  const isGalleryMode =
+    gallery.length > 0 &&
+    (activeTab === 'gallery' || !media?.formats || media.formats.length === 0);
 
   // Platform badges with specific level styling
   const getLevelBadge = (level: number, platformDisplay: string) => {
@@ -391,64 +531,231 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 </div>
               </div>
 
-              {/* Quality & Format Selection Grid */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span>Seleccionar Calidad y Formato:</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">
-                    {media.formats.length} opciones disponibles
-                  </span>
-                </label>
+              {/* Tab Selector if both Gallery and Video Formats exist */}
+              {gallery.length > 0 && media.formats.length > 0 && (
+                <div className="flex items-center gap-2 border-b border-slate-800/90 pb-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('gallery')}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                      activeTab === 'gallery'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+                    )}
+                  >
+                    <Images className="w-3.5 h-3.5" />
+                    <span>Galería de imágenes ({gallery.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('video')}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                      activeTab === 'video'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+                    )}
+                  >
+                    <Film className="w-3.5 h-3.5" />
+                    <span>Video / Stream ({media.formats.length} calidades)</span>
+                  </button>
+                </div>
+              )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {media.formats.map((fmt) => {
-                    const isSelected = selectedFormatId === fmt.format_id;
-                    return (
+              {/* GALLERY VIEW: Multiple images in Twitter, Reddit, etc. */}
+              {isGalleryMode && gallery.length > 0 && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Images className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Imágenes encontradas ({gallery.length}):</span>
+                    </label>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        key={fmt.format_id}
-                        onClick={() => handleSelectFormat(fmt)}
-                        className={cn(
-                          'p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1',
-                          isSelected
-                            ? 'bg-cyan-500/15 border-cyan-400 ring-1 ring-cyan-400/50 shadow-md shadow-cyan-500/20 text-slate-100'
-                            : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-800/40'
-                        )}
+                        onClick={selectAllImages}
+                        className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer border border-slate-700"
                       >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-xs font-bold truncate">
-                            {fmt.quality_label}
-                          </span>
-                          <span
-                            className={cn(
-                              'text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold uppercase',
-                              fmt.is_audio_only
-                                ? 'bg-pink-950 text-pink-300 border border-pink-800/60'
-                                : 'bg-cyan-950 text-cyan-300 border border-cyan-800/60'
-                            )}
-                          >
-                            {fmt.ext}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                          <span>
-                            {fmt.resolution || (fmt.is_audio_only ? 'Audio' : 'Video')}
-                          </span>
-                          {fmt.filesize_approx && (
-                            <span className="text-slate-300 font-medium">
-                              ~{formatBytes(fmt.filesize_approx)}
-                            </span>
-                          )}
-                        </div>
+                        Seleccionar todas
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
+                      <button
+                        type="button"
+                        onClick={deselectAllImages}
+                        className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer border border-slate-700"
+                      >
+                        Deseleccionar
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Notice if yt-dlp is missing */}
-              {extractorStatus && !extractorStatus.ytdlp_installed && (
+                  {/* Image Grid with Thumbnails and Checkboxes */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                    {gallery.map((item, idx) => {
+                      const isSelected = selectedImageIndices.has(idx);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => toggleSelectImage(idx)}
+                          className={cn(
+                            'relative group rounded-xl overflow-hidden border cursor-pointer transition-all aspect-video flex flex-col justify-between bg-slate-900',
+                            isSelected
+                              ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-md shadow-cyan-950/40'
+                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700'
+                          )}
+                        >
+                          <img
+                            src={item.thumbnail_url || item.url}
+                            alt={`Imagen ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+
+                          {/* Checkbox badge top right */}
+                          <div className="absolute top-1.5 right-1.5 pointer-events-none">
+                            <div
+                              className={cn(
+                                'w-5 h-5 rounded-md flex items-center justify-center border transition-all',
+                                isSelected
+                                  ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow'
+                                  : 'bg-black/60 border-slate-600 text-transparent'
+                              )}
+                            >
+                              <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </div>
+                          </div>
+
+                          {/* Bottom metadata */}
+                          <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-[10px] font-mono text-slate-200">
+                            <span className="font-bold bg-black/60 px-1.5 py-0.2 rounded border border-slate-700/60">
+                              #{idx + 1}
+                            </span>
+                            {item.width && item.height && (
+                              <span className="bg-black/60 px-1.5 py-0.2 rounded text-cyan-300 border border-slate-700/60">
+                                {item.width}x{item.height}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Organization option: Subfolder vs Loose (only when post has multiple images) */}
+                  {gallery.length > 1 && (
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>¿Cómo guardar las imágenes?</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setFolderOrganization('subfolder')}
+                          className={cn(
+                            'p-2.5 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer',
+                            folderOrganization === 'subfolder'
+                              ? 'bg-cyan-500/15 border-cyan-400 text-slate-100 ring-1 ring-cyan-400/40'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                          )}
+                        >
+                          <FolderPlus className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-semibold text-slate-200">
+                              Crear una subcarpeta (Recomendado)
+                            </div>
+                            <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                              Crea una carpeta con el título de la publicación para contener todas las fotos
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFolderOrganization('loose')}
+                          className={cn(
+                            'p-2.5 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer',
+                            folderOrganization === 'loose'
+                              ? 'bg-cyan-500/15 border-cyan-400 text-slate-100 ring-1 ring-cyan-400/40'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                          )}
+                        >
+                          <Folder className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-semibold text-slate-200">
+                              Guardar imágenes sueltas
+                            </div>
+                            <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                              Descarga las fotos directamente en la carpeta de destino seleccionada
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VIDEO FORMAT SELECTION: When not in gallery mode */}
+              {!isGalleryMode && (
+                <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span>Seleccionar Calidad y Formato:</span>
+                    <span className="text-[10px] text-cyan-400 font-mono">
+                      {media.formats.length} opciones disponibles
+                    </span>
+                  </label>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {media.formats.map((fmt) => {
+                      const isSelected = selectedFormatId === fmt.format_id;
+                      return (
+                        <button
+                          type="button"
+                          key={fmt.format_id}
+                          onClick={() => handleSelectFormat(fmt)}
+                          className={cn(
+                            'p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1',
+                            isSelected
+                              ? 'bg-cyan-500/15 border-cyan-400 ring-1 ring-cyan-400/50 shadow-md shadow-cyan-500/20 text-slate-100'
+                              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-800/40'
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-bold truncate">
+                              {fmt.quality_label}
+                            </span>
+                            <span
+                              className={cn(
+                                'text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold uppercase',
+                                fmt.is_audio_only
+                                  ? 'bg-pink-950 text-pink-300 border border-pink-800/60'
+                                  : 'bg-cyan-950 text-cyan-300 border border-cyan-800/60'
+                              )}
+                            >
+                              {fmt.ext}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                            <span>
+                              {fmt.resolution || (fmt.is_audio_only ? 'Audio' : 'Video')}
+                            </span>
+                            {fmt.filesize_approx && (
+                              <span className="text-slate-300 font-medium">
+                                ~{formatBytes(fmt.filesize_approx)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Notice if yt-dlp is missing (only relevant for video stream downloads) */}
+              {!isGalleryMode && extractorStatus && !extractorStatus.ytdlp_installed && (
                 <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 space-y-2">
                   <div className="flex items-start gap-2 text-xs text-amber-200">
                     <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -492,7 +799,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
               )}
 
               {/* Advisory if FFmpeg is not installed */}
-              {extractorStatus && extractorStatus.ytdlp_installed && !extractorStatus.ffmpeg_installed && (
+              {!isGalleryMode && extractorStatus && extractorStatus.ytdlp_installed && !extractorStatus.ffmpeg_installed && (
                 <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-start gap-2 text-[11px] text-slate-300">
                   <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono text-[10px] font-semibold shrink-0 border border-amber-500/30">
                     FFmpeg
@@ -541,18 +848,87 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             </div>
           )}
 
+          {/* Connection Threads Selector (Available for direct downloads AND video streams) */}
+          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <span>
+                  {media && !isGalleryMode
+                    ? 'Hilos de Descarga / Fragmentos concurrentes'
+                    : 'Conexiones simultáneas (Hilos de descarga)'}
+                </span>
+              </label>
+              <span className="text-xs font-mono text-cyan-300 font-bold">
+                {connections} {connections === 1 ? 'hilo' : 'hilos'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-5 gap-1.5">
+              {[1, 4, 8, 16, 32].map((num) => {
+                const disabled = Boolean(
+                  probeResult && !media && !probeResult.accept_ranges && num > 1
+                );
+                return (
+                  <button
+                    type="button"
+                    key={num}
+                    disabled={disabled}
+                    onClick={() => setConnections(num)}
+                    title={
+                      disabled
+                        ? 'El servidor no admite descargas en múltiples conexiones'
+                        : undefined
+                    }
+                    className={cn(
+                      'py-1.5 px-2 rounded-lg text-xs font-mono font-medium border transition-all cursor-pointer',
+                      connections === num
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-sm shadow-cyan-500/20'
+                        : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200',
+                      disabled &&
+                        'opacity-40 cursor-not-allowed hover:border-slate-800 hover:text-slate-400'
+                    )}
+                  >
+                    {num}x
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-slate-400">
+              {media && !isGalleryMode
+                ? '✓ BundleRock acelera la descarga de videos por partes/fragmentos DASH/HLS concurrentemente con yt-dlp (--concurrent-fragments <N>).'
+                : probeResult && !probeResult.accept_ranges
+                ? 'El servidor solo permite 1 conexión (sin soporte Accept-Ranges).'
+                : 'BundleRock divide dinámicamente la descarga en segmentos para maximizar el ancho de banda.'}
+            </p>
+          </div>
+
           {/* File Name Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-slate-300">
-              Nombre de archivo a guardar
+              Nombre de archivo / Publicación
             </label>
-            <input
-              type="text"
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="nombre_de_archivo.ext (opcional, se auto-detecta)"
-              className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
-            />
+            {isGalleryMode ? (
+              <p className="text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                Las {selectedImageIndices.size} imágenes seleccionadas se guardarán numeradas como:{' '}
+                <code className="text-cyan-300 font-mono">
+                  {(fileName || 'imagen').split('.')[0]}_1.jpg
+                </code>
+                ,{' '}
+                <code className="text-cyan-300 font-mono">
+                  {(fileName || 'imagen').split('.')[0]}_2.jpg
+                </code>
+                ...
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder="nombre_de_archivo.ext (opcional, se auto-detecta)"
+                className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+              />
+            )}
           </div>
 
           {/* Save Directory */}
@@ -571,57 +947,6 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             </div>
           </div>
 
-          {/* Connection Threads Selector (for direct downloads) */}
-          {!media && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                  Conexiones simultáneas (Hilos)
-                </label>
-                <span className="text-xs font-mono text-cyan-300 font-bold">
-                  {connections} {connections === 1 ? 'conexión' : 'conexiones'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-5 gap-1.5">
-                {[1, 4, 8, 16, 32].map((num) => {
-                  const disabled = Boolean(
-                    probeResult && !probeResult.accept_ranges && num > 1
-                  );
-                  return (
-                    <button
-                      type="button"
-                      key={num}
-                      disabled={disabled}
-                      onClick={() => setConnections(num)}
-                      title={
-                        disabled
-                          ? 'El servidor no admite descargas en múltiples conexiones'
-                          : undefined
-                      }
-                      className={cn(
-                        'py-1.5 px-2 rounded-lg text-xs font-mono font-medium border transition-all cursor-pointer',
-                        connections === num
-                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-sm shadow-cyan-500/20'
-                          : 'bg-slate-950/50 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200',
-                        disabled &&
-                          'opacity-40 cursor-not-allowed hover:border-slate-800 hover:text-slate-400'
-                      )}
-                    >
-                      {num}x
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[11px] text-slate-500">
-                {probeResult && !probeResult.accept_ranges
-                  ? 'El servidor solo permite 1 conexión (sin soporte Accept-Ranges).'
-                  : 'BundleRock divide dinámicamente el archivo en segmentos para maximizar el ancho de banda.'}
-              </p>
-            </div>
-          )}
-
           {/* Buttons Footer */}
           <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
             <button
@@ -633,18 +958,28 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={!url.trim() || starting}
+              disabled={
+                !url.trim() ||
+                starting ||
+                (isGalleryMode && selectedImageIndices.size === 0)
+              }
               className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
             >
               {starting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isGalleryMode ? (
+                <Images className="w-4 h-4 stroke-[2.5]" />
               ) : media ? (
                 <Film className="w-4 h-4 stroke-[2.5]" />
               ) : (
                 <Download className="w-4 h-4 stroke-[2.5]" />
               )}
               <span>
-                {media ? 'Descargar Video / Audio' : 'Descargar Ahora'}
+                {isGalleryMode
+                  ? `Descargar ${selectedImageIndices.size} ${selectedImageIndices.size === 1 ? 'imagen' : 'imágenes'}`
+                  : media
+                  ? 'Descargar Video / Audio'
+                  : 'Descargar Ahora'}
               </span>
             </button>
           </div>

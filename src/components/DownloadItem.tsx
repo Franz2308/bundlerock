@@ -27,6 +27,8 @@ import {
   formatSpeed,
   formatETA,
   getFileCategory,
+  formatDuration,
+  formatResolutionLabel,
 } from '../utils/formatters';
 import { SegmentedProgressBar } from './SegmentedProgressBar';
 import { cn } from '../utils/cn';
@@ -59,8 +61,12 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
   const [copied, setCopied] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [expandedThreads, setExpandedThreads] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const category: FileCategory = getFileCategory(task.file_name);
+  const thumbnail = task.thumbnail_url || task.media_thumbnail;
+  const duration = task.duration_seconds ?? task.media_duration;
+  const resolution = task.resolution;
 
   const getCategoryIcon = () => {
     switch (category) {
@@ -152,9 +158,14 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
         )}
       >
         <div className="shrink-0">
-          {task.media_thumbnail ? (
+          {thumbnail && !imgError ? (
             <div className="w-10 h-7 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-              <img src={task.media_thumbnail} alt="" className="w-full h-full object-cover" />
+              <img
+                src={thumbnail}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
             </div>
           ) : (
             <div className="p-2 rounded-lg bg-slate-800/80">
@@ -179,6 +190,17 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
               {task.media_platform && (
                 <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-purple-950/70 text-purple-300 border border-purple-800/50">
                   {task.media_platform}
+                </span>
+              )}
+              {resolution && (
+                <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-blue-950/70 text-blue-300 border border-blue-800/50">
+                  {formatResolutionLabel(resolution, category === 'image')}
+                </span>
+              )}
+              {duration != null && duration > 0 && (
+                <span className="shrink-0 text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+                  {formatDuration(duration)}
                 </span>
               )}
             </div>
@@ -281,12 +303,13 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 min-w-0">
           <div className="shrink-0">
-            {task.media_thumbnail ? (
+            {thumbnail && !imgError ? (
               <div className="w-16 h-12 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-md">
                 <img
-                  src={task.media_thumbnail}
+                  src={thumbnail}
                   alt={task.file_name}
                   className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
                 />
               </div>
             ) : (
@@ -311,6 +334,22 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
               {task.media_platform && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/70 text-purple-300 border border-purple-800/60">
                   {task.media_platform}
+                </span>
+              )}
+              {resolution && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-950/70 text-blue-300 border border-blue-800/60 flex items-center gap-1">
+                  {category === 'image' ? (
+                    <ImageIcon className="w-3 h-3 text-blue-400" />
+                  ) : (
+                    <Film className="w-3 h-3 text-blue-400" />
+                  )}
+                  {formatResolutionLabel(resolution, category === 'image')}
+                </span>
+              )}
+              {duration != null && duration > 0 && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  {formatDuration(duration)}
                 </span>
               )}
             </div>

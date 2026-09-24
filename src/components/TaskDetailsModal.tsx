@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Cpu,
   ExternalLink,
   FolderOpen,
+  Clock,
+  Film,
+  ImageIcon,
 } from 'lucide-react';
 import { DownloadTask } from '../types/download';
-import { formatBytes, formatSpeed } from '../utils/formatters';
+import {
+  formatBytes,
+  formatSpeed,
+  formatDuration,
+  formatResolutionLabel,
+  getFileCategory,
+} from '../utils/formatters';
 import { SegmentedProgressBar } from './SegmentedProgressBar';
 import { cn } from '../utils/cn';
 
@@ -23,7 +32,13 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   onOpenFile,
   onOpenFolder,
 }) => {
+  const [imgError, setImgError] = useState(false);
   if (!task) return null;
+
+  const category = getFileCategory(task.file_name);
+  const thumbnail = task.thumbnail_url || task.media_thumbnail;
+  const duration = task.duration_seconds ?? task.media_duration;
+  const resolution = task.resolution;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -53,15 +68,16 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
 
         {/* Scrollable Body */}
         <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar">
-          {/* Media Header Preview if media download */}
-          {task.is_media && (
+          {/* Media Header Preview if media download or rich metadata present */}
+          {(task.is_media || thumbnail || resolution || duration) && (
             <div className="p-3 rounded-xl bg-slate-950/80 border border-purple-500/30 flex items-center gap-3.5">
-              {task.media_thumbnail ? (
+              {thumbnail && !imgError ? (
                 <div className="w-20 h-14 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0">
                   <img
-                    src={task.media_thumbnail}
+                    src={thumbnail}
                     alt=""
                     className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
                   />
                 </div>
               ) : null}
@@ -70,6 +86,22 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                   {task.media_platform && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/60">
                       {task.media_platform}
+                    </span>
+                  )}
+                  {resolution && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-800/60 flex items-center gap-1">
+                      {category === 'image' ? (
+                        <ImageIcon className="w-2.5 h-2.5 text-blue-400" />
+                      ) : (
+                        <Film className="w-2.5 h-2.5 text-blue-400" />
+                      )}
+                      {formatResolutionLabel(resolution, category === 'image')}
+                    </span>
+                  )}
+                  {duration != null && duration > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 text-slate-400" />
+                      {formatDuration(duration)}
                     </span>
                   )}
                   {task.media_format && (
@@ -149,6 +181,24 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                 {task.file_path}
               </span>
             </div>
+            {resolution && (
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+                <span className="text-slate-400">
+                  {category === 'image' ? 'Dimensiones / Resolución:' : 'Resolución:'}
+                </span>
+                <span className="font-mono text-cyan-300 font-semibold">
+                  {formatResolutionLabel(resolution, category === 'image')}
+                </span>
+              </div>
+            )}
+            {duration != null && duration > 0 && (
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+                <span className="text-slate-400">Duración:</span>
+                <span className="font-mono text-slate-200">
+                  {formatDuration(duration)}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Acepta Rangos (Multisegmento):</span>
               <span className="font-mono text-slate-200">
