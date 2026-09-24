@@ -68,6 +68,52 @@ impl DownloadSegment {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SocialMediaPlatform {
+    #[serde(rename = "youtube")]
+    YouTube,
+    #[serde(rename = "twitter")]
+    Twitter,
+    #[serde(rename = "facebook")]
+    Facebook,
+    #[serde(rename = "reddit")]
+    Reddit,
+    #[serde(other)]
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MediaFormatOption {
+    pub format_id: String,
+    pub quality_label: String,
+    pub ext: String,
+    pub resolution: Option<String>,
+    pub filesize_approx: Option<u64>,
+    pub is_audio_only: bool,
+    pub format_note: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MediaMetadata {
+    pub title: String,
+    pub uploader: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub duration_seconds: Option<u64>,
+    pub platform: SocialMediaPlatform,
+    pub platform_level: u8,
+    pub platform_display: String,
+    pub formats: Vec<MediaFormatOption>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExtractorStatus {
+    pub ytdlp_installed: bool,
+    pub ytdlp_path: Option<String>,
+    pub ffmpeg_installed: bool,
+    pub ffmpeg_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadTask {
     pub id: String,
@@ -86,6 +132,18 @@ pub struct DownloadTask {
     pub created_at: u64,
     pub updated_at: u64,
     pub error_message: Option<String>,
+    #[serde(default)]
+    pub is_media: bool,
+    #[serde(default)]
+    pub media_thumbnail: Option<String>,
+    #[serde(default)]
+    pub media_duration: Option<u64>,
+    #[serde(default)]
+    pub media_platform: Option<String>,
+    #[serde(default)]
+    pub media_format: Option<String>,
+    #[serde(default)]
+    pub stage_message: Option<String>,
 }
 
 impl DownloadTask {
@@ -118,6 +176,12 @@ impl DownloadTask {
             created_at: now,
             updated_at: now,
             error_message: None,
+            is_media: false,
+            media_thumbnail: None,
+            media_duration: None,
+            media_platform: None,
+            media_format: None,
+            stage_message: None,
         }
     }
 
@@ -147,6 +211,8 @@ pub struct ProbeResult {
     pub etag: Option<String>,
     pub content_type: Option<String>,
     pub suggested_connections: usize,
+    #[serde(default)]
+    pub media_info: Option<MediaMetadata>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,6 +231,10 @@ pub struct DownloadProgressPayload {
     pub status: DownloadStatus,
     pub segments: Vec<DownloadSegment>,
     pub error_message: Option<String>,
+    #[serde(default)]
+    pub is_media: bool,
+    #[serde(default)]
+    pub stage_message: Option<String>,
 }
 
 impl From<&DownloadTask> for DownloadProgressPayload {
@@ -193,6 +263,8 @@ impl From<&DownloadTask> for DownloadProgressPayload {
             status: task.status,
             segments: task.segments.clone(),
             error_message: task.error_message.clone(),
+            is_media: task.is_media,
+            stage_message: task.stage_message.clone(),
         }
     }
 }
@@ -287,5 +359,49 @@ mod tests {
         assert_eq!(payload.progress_percentage, 50.0);
         assert_eq!(payload.progress_percent, Some(50.0));
         assert_eq!(payload.eta_secs, Some(2)); // (2000 - 1000) / 500 = 2 seconds
+    }
+
+    #[test]
+    fn test_media_task_and_probe_serialization() {
+        let mut task = DownloadTask::new(
+            "media-1".to_string(),
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string(),
+            "/downloads/video.mp4".to_string(),
+            "video.mp4".to_string(),
+            Some(50_000_000),
+            true,
+            None,
+            4,
+        );
+        task.is_media = true;
+        task.media_thumbnail = Some("https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg".to_string());
+        task.media_platform = Some("YouTube (Nivel 1)".to_string());
+        task.media_duration = Some(212);
+        task.stage_message = Some("Ensamblando audio y video con FFmpeg...".to_string());
+
+        let payload = DownloadProgressPayload::from(&task);
+        assert!(payload.is_media);
+        assert_eq!(
+            payload.stage_message,
+            Some("Ensamblando audio y video con FFmpeg...".to_string())
+        );
+
+        let json = serde_json::to_string(&task).expect("serialize task");
+        let deserialized: DownloadTask = serde_json::from_str(&json).expect("deserialize task");
+        assert!(deserialized.is_media);
+        assert_eq!(deserialized.media_duration, Some(212));
+    }
+
+    #[test]
+    fn test_social_media_platform_serialization() {
+        assert_eq!(serde_json::to_string(&SocialMediaPlatform::YouTube).unwrap(), "\"youtube\"");
+        assert_eq!(serde_json::to_string(&SocialMediaPlatform::Twitter).unwrap(), "\"twitter\"");
+        assert_eq!(serde_json::to_string(&SocialMediaPlatform::Facebook).unwrap(), "\"facebook\"");
+        assert_eq!(serde_json::to_string(&SocialMediaPlatform::Reddit).unwrap(), "\"reddit\"");
+        assert_eq!(serde_json::to_string(&SocialMediaPlatform::Other).unwrap(), "\"other\"");
+
+        // Deserialization of unknown strings should map to Other
+        let deserialized: SocialMediaPlatform = serde_json::from_str("\"instagram\"").unwrap();
+        assert_eq!(deserialized, SocialMediaPlatform::Other);
     }
 }

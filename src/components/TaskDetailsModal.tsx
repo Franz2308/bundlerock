@@ -53,6 +53,40 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
 
         {/* Scrollable Body */}
         <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* Media Header Preview if media download */}
+          {task.is_media && (
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-purple-500/30 flex items-center gap-3.5">
+              {task.media_thumbnail ? (
+                <div className="w-20 h-14 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0">
+                  <img
+                    src={task.media_thumbnail}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {task.media_platform && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/60">
+                      {task.media_platform}
+                    </span>
+                  )}
+                  {task.media_format && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
+                      Formato: {task.media_format}
+                    </span>
+                  )}
+                </div>
+                {task.stage_message && (
+                  <p className="text-xs text-amber-300 mt-1 font-medium animate-pulse">
+                    {task.stage_message}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Main Visual Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">

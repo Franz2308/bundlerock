@@ -81,6 +81,8 @@ export function App() {
               status: payload.status,
               segments: payload.segments && payload.segments.length > 0 ? payload.segments : old.segments,
               error_message: payload.error_message,
+              stage_message: payload.stage_message !== undefined ? payload.stage_message : old.stage_message,
+              is_media: payload.is_media !== undefined ? payload.is_media : old.is_media,
               updated_at: Date.now(),
             };
             return updated;
@@ -97,6 +99,8 @@ export function App() {
                 status: payload.status,
                 segments: payload.segments && payload.segments.length > 0 ? payload.segments : prev.segments,
                 error_message: payload.error_message,
+                stage_message: payload.stage_message !== undefined ? payload.stage_message : prev.stage_message,
+                is_media: payload.is_media !== undefined ? payload.is_media : prev.is_media,
               };
             }
             return prev;
@@ -228,6 +232,7 @@ export function App() {
     destinationPath?: string;
     fileName?: string;
     connections: number;
+    formatId?: string;
   }) => {
     const newTask = await startDownload(params);
     setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)]);

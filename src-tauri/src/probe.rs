@@ -169,6 +169,7 @@ pub async fn probe_url(client: &reqwest::Client, target_url: &str) -> Result<Pro
         etag,
         content_type,
         suggested_connections,
+        media_info: None,
     })
 }
 

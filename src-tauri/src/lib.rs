@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod engine;
 pub mod manager;
+pub mod media_extractor;
 pub mod models;
 pub mod probe;
 pub mod storage;
@@ -30,7 +31,9 @@ pub fn run() {
             get_task,
             list_downloads,
             list_tasks,
-            get_default_directory
+            get_default_directory,
+            check_extractor_status,
+            install_extractor
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

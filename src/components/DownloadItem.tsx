@@ -151,22 +151,37 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
           isSelected && 'border-cyan-500/70 ring-1 ring-cyan-500/40 bg-slate-900/95 shadow-[0_0_16px_rgba(6,182,212,0.12)]'
         )}
       >
-        <div className="p-2 rounded-lg bg-slate-800/80 shrink-0">
-          {getCategoryIcon()}
+        <div className="shrink-0">
+          {task.media_thumbnail ? (
+            <div className="w-10 h-7 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
+              <img src={task.media_thumbnail} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="p-2 rounded-lg bg-slate-800/80">
+              {getCategoryIcon()}
+            </div>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span
-              className="text-xs font-semibold text-slate-200 truncate cursor-pointer hover:text-cyan-300"
-              onClick={(e) => {
-                e.stopPropagation();
-                onInspect(task);
-              }}
-              title={task.file_name}
-            >
-              {task.file_name}
-            </span>
+            <div className="flex items-center gap-2 truncate">
+              <span
+                className="text-xs font-semibold text-slate-200 truncate cursor-pointer hover:text-cyan-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInspect(task);
+                }}
+                title={task.file_name}
+              >
+                {task.file_name}
+              </span>
+              {task.media_platform && (
+                <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-purple-950/70 text-purple-300 border border-purple-800/50">
+                  {task.media_platform}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {getStatusBadge()}
               <span className="text-[11px] font-mono text-slate-400">
@@ -265,11 +280,23 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
       {/* Top Header: File Info & Actions */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/50 shrink-0 shadow-inner">
-            {getCategoryIcon()}
+          <div className="shrink-0">
+            {task.media_thumbnail ? (
+              <div className="w-16 h-12 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 shadow-md">
+                <img
+                  src={task.media_thumbnail}
+                  alt={task.file_name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/50 shadow-inner">
+                {getCategoryIcon()}
+              </div>
+            )}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3
                 onClick={(e) => {
                   e.stopPropagation();
@@ -281,7 +308,19 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
                 {task.file_name}
               </h3>
               {getStatusBadge()}
+              {task.media_platform && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/70 text-purple-300 border border-purple-800/60">
+                  {task.media_platform}
+                </span>
+              )}
             </div>
+
+            {task.stage_message && task.status === 'downloading' && (
+              <div className="text-[11px] text-amber-300 font-medium flex items-center gap-1 mt-0.5 animate-pulse">
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>{task.stage_message}</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
               <span className="truncate max-w-[280px]" title={task.url}>

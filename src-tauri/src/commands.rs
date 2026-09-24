@@ -1,8 +1,8 @@
 use crate::manager::DownloadManager;
-use crate::models::{DownloadTask, ProbeResult};
+use crate::models::{DownloadTask, ExtractorStatus, ProbeResult};
 use tauri::{AppHandle, State};
 
-/// Probes a download URL to detect file size, range support, ETag, and file name.
+/// Probes a download URL to detect file size, range support, ETag, and file name (or multimedia streams).
 #[tauri::command]
 pub async fn probe_url(
     url: String,
@@ -11,7 +11,7 @@ pub async fn probe_url(
     manager.probe(&url).await
 }
 
-/// Starts an accelerated segmented download.
+/// Starts an accelerated segmented download or multimedia download.
 #[tauri::command]
 pub async fn start_download(
     url: String,
@@ -19,13 +19,28 @@ pub async fn start_download(
     destination_path: Option<String>,
     file_name: Option<String>,
     connections: Option<usize>,
+    format_id: Option<String>,
     app: AppHandle,
     manager: State<'_, DownloadManager>,
 ) -> Result<DownloadTask, String> {
     let final_path = save_path.or(destination_path);
     manager
-        .start_download(&url, final_path, file_name, connections, Some(app))
+        .start_download(&url, final_path, file_name, connections, format_id, Some(app))
         .await
+}
+
+/// Checks availability of multimedia extractor engine (yt-dlp and ffmpeg).
+#[tauri::command]
+pub fn check_extractor_status(manager: State<'_, DownloadManager>) -> ExtractorStatus {
+    manager.get_extractor_status()
+}
+
+/// Automatically downloads and installs yt-dlp into BundleRock's bin directory.
+#[tauri::command]
+pub async fn install_extractor(
+    manager: State<'_, DownloadManager>,
+) -> Result<String, String> {
+    manager.install_extractor().await
 }
 
 /// Pauses an active download.

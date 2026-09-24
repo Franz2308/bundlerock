@@ -1,7 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { openPath, revealItemInDir } from '@tauri-apps/plugin-opener';
-import { DownloadProgressPayload, DownloadTask, ProbeResult } from '../types/download';
+import {
+  DownloadProgressPayload,
+  DownloadTask,
+  ExtractorStatus,
+  ProbeResult,
+} from '../types/download';
 
 export interface StartDownloadParams {
   url: string;
@@ -9,6 +14,7 @@ export interface StartDownloadParams {
   destinationPath?: string;
   fileName?: string;
   connections?: number;
+  formatId?: string;
 }
 
 export async function probeUrl(url: string): Promise<ProbeResult> {
@@ -22,7 +28,16 @@ export async function startDownload(params: StartDownloadParams): Promise<Downlo
     destinationPath: params.destinationPath || params.savePath,
     fileName: params.fileName,
     connections: params.connections,
+    formatId: params.formatId,
   });
+}
+
+export async function checkExtractorStatus(): Promise<ExtractorStatus> {
+  return await invoke<ExtractorStatus>('check_extractor_status');
+}
+
+export async function installExtractor(): Promise<string> {
+  return await invoke<string>('install_extractor');
 }
 
 export async function pauseDownload(id: string): Promise<void> {

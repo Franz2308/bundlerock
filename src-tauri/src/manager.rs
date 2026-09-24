@@ -2,9 +2,12 @@ use crate::engine::{
     divide_ranges, download_segment_worker, download_single_stream_worker,
     SegmentProgressUpdate,
 };
+use crate::media_extractor::{
+    detect_platform, download_media_stream, get_extractor_status, install_ytdlp, probe_media,
+};
 use crate::models::{
     now_millis, DownloadProgressPayload, DownloadSegment, DownloadStatus, DownloadTask,
-    ProbeResult,
+    ExtractorStatus, ProbeResult,
 };
 use crate::probe::probe_url;
 use crate::storage::StorageFile;
@@ -44,8 +47,62 @@ impl DownloadManager {
     }
 
     /// Probes a URL to discover size, range support, and filename.
+    /// If URL is a social media / multimedia stream (Level 1: YouTube, Twitter/X; Level 2: Facebook; Level 3: Reddit),
+    /// extracts multimedia metadata, thumbnail, duration, and available format resolutions.
     pub async fn probe(&self, url: &str) -> Result<ProbeResult, String> {
-        probe_url(&self.client, url).await
+        let clean_url = url.trim();
+        let normalized_url = if !clean_url.starts_with("http://") && !clean_url.starts_with("https://") {
+            format!("https://{clean_url}")
+        } else {
+            clean_url.to_string()
+        };
+
+        if let Some((_platform, _level, _display)) = detect_platform(&normalized_url) {
+            match probe_media(&self.client, &normalized_url).await {
+                Ok(media_info) => {
+                    let default_ext = media_info
+                        .formats
+                        .first()
+                        .map(|f| f.ext.as_str())
+                        .unwrap_or("mp4");
+                    let clean_title = if media_info.title.trim().is_empty() {
+                        "video_multimedia"
+                    } else {
+                        &media_info.title
+                    };
+                    let sanitized = crate::probe::sanitize_filename(clean_title);
+                    let stem = sanitized.strip_suffix(".bin").unwrap_or(&sanitized);
+                    let file_name = format!("{stem}.{default_ext}");
+                    let approx_size = media_info.formats.first().and_then(|f| f.filesize_approx);
+
+                    return Ok(ProbeResult {
+                        url: normalized_url,
+                        file_name,
+                        content_length: approx_size,
+                        accept_ranges: true,
+                        etag: None,
+                        content_type: Some(format!("video/{default_ext}")),
+                        suggested_connections: 4,
+                        media_info: Some(media_info),
+                    });
+                }
+                Err(e) => {
+                    eprintln!("Media probe error, falling back to standard probe: {e}");
+                }
+            }
+        }
+
+        probe_url(&self.client, &normalized_url).await
+    }
+
+    /// Gets extractor status (yt-dlp and ffmpeg)
+    pub fn get_extractor_status(&self) -> ExtractorStatus {
+        get_extractor_status()
+    }
+
+    /// Automatically installs yt-dlp binary
+    pub async fn install_extractor(&self) -> Result<String, String> {
+        install_ytdlp(&self.client).await
     }
 
     /// Starts a new download task.
@@ -55,6 +112,7 @@ impl DownloadManager {
         save_path: Option<String>,
         custom_file_name: Option<String>,
         connections: Option<usize>,
+        format_id: Option<String>,
         app_handle: Option<tauri::AppHandle>,
     ) -> Result<DownloadTask, String> {
         // Step 1: Probe URL
@@ -107,7 +165,65 @@ impl DownloadManager {
             num_connections,
         );
 
-        // Step 2: Initialize segments
+        // Check if multimedia task
+        if let Some(media) = probe.media_info {
+            if crate::media_extractor::find_ytdlp().is_none() {
+                return Err("Motor extractor multimedia (yt-dlp) no encontrado. Por favor instálalo desde la ventana de descarga antes de iniciar la descarga.".to_string());
+            }
+
+            task.is_media = true;
+            task.media_thumbnail = media.thumbnail_url;
+            task.media_duration = media.duration_seconds;
+            task.media_platform = Some(format!(
+                "{} (Nivel {})",
+                media.platform_display, media.platform_level
+            ));
+            task.media_format = format_id.clone();
+            task.status = DownloadStatus::Downloading;
+
+            let total = task.total_bytes.unwrap_or(0);
+            task.segments = vec![DownloadSegment::new(
+                0,
+                0,
+                if total > 0 { total - 1 } else { 0 },
+            )];
+
+            let session_id = SESSION_COUNTER.fetch_add(1, Ordering::SeqCst);
+            let (cancel_tx, cancel_rx) = watch::channel(false);
+
+            {
+                let mut controllers = self.controllers.lock().await;
+                controllers.insert(
+                    task_id.clone(),
+                    ActiveController {
+                        session_id,
+                        cancel_tx,
+                    },
+                );
+            }
+
+            {
+                let mut tasks = self.tasks.write().await;
+                tasks.insert(task_id.clone(), task.clone());
+            }
+
+            let task_for_stream = task.clone();
+            let tasks_arc = self.tasks.clone();
+            tokio::spawn(async move {
+                let _ = download_media_stream(
+                    task_for_stream,
+                    format_id,
+                    app_handle,
+                    cancel_rx,
+                    tasks_arc,
+                )
+                .await;
+            });
+
+            return Ok(task);
+        }
+
+        // Step 2: Initialize segments for standard HTTP downloads
         if probe.accept_ranges && probe.content_length.is_some() {
             let total = probe.content_length.unwrap();
             task.segments = divide_ranges(total, num_connections);
@@ -205,6 +321,38 @@ impl DownloadManager {
             }
         }
 
+        if task.is_media {
+            let session_id = SESSION_COUNTER.fetch_add(1, Ordering::SeqCst);
+            let (cancel_tx, cancel_rx) = watch::channel(false);
+
+            {
+                let mut controllers = self.controllers.lock().await;
+                controllers.insert(
+                    id.to_string(),
+                    ActiveController {
+                        session_id,
+                        cancel_tx,
+                    },
+                );
+            }
+
+            let task_for_stream = task.clone();
+            let tasks_arc = self.tasks.clone();
+            let fmt = task.media_format.clone();
+            tokio::spawn(async move {
+                let _ = download_media_stream(
+                    task_for_stream,
+                    fmt,
+                    app_handle,
+                    cancel_rx,
+                    tasks_arc,
+                )
+                .await;
+            });
+
+            return Ok(());
+        }
+
         self.spawn_download_supervisor(task, app_handle, false).await?;
         Ok(())
     }
@@ -235,7 +383,15 @@ impl DownloadManager {
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_millis(150)).await;
                 if file_path.exists() {
-                    let _ = std::fs::remove_file(file_path);
+                    let _ = std::fs::remove_file(&file_path);
+                }
+                let part_file = PathBuf::from(format!("{}.part", file_path.display()));
+                if part_file.exists() {
+                    let _ = std::fs::remove_file(part_file);
+                }
+                let ytdl_file = PathBuf::from(format!("{}.ytdl", file_path.display()));
+                if ytdl_file.exists() {
+                    let _ = std::fs::remove_file(ytdl_file);
                 }
             });
         }
