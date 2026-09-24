@@ -429,6 +429,9 @@ impl DownloadManager {
                     } else {
                         task.total_bytes = Some(task.downloaded_bytes);
                     }
+                    if let Some(ref app) = app_handle {
+                        let _ = app.emit("download-finished", task.clone());
+                    }
                 } else if task.status == DownloadStatus::Downloading {
                     task.status = DownloadStatus::Paused;
                     task.speed_bps = 0;

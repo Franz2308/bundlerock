@@ -152,10 +152,16 @@ pub struct ProbeResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadProgressPayload {
     pub id: String,
+    #[serde(default)]
+    pub task_id: Option<String>,
     pub downloaded_bytes: u64,
     pub total_bytes: Option<u64>,
     pub speed_bps: u64,
     pub progress_percentage: f64,
+    #[serde(default)]
+    pub progress_percent: Option<f64>,
+    #[serde(default)]
+    pub eta_secs: Option<u64>,
     pub status: DownloadStatus,
     pub segments: Vec<DownloadSegment>,
     pub error_message: Option<String>,
@@ -163,12 +169,27 @@ pub struct DownloadProgressPayload {
 
 impl From<&DownloadTask> for DownloadProgressPayload {
     fn from(task: &DownloadTask) -> Self {
+        let eta_secs = if task.speed_bps > 0 {
+            task.total_bytes.and_then(|total| {
+                if total > task.downloaded_bytes {
+                    Some((total - task.downloaded_bytes) / task.speed_bps)
+                } else {
+                    Some(0)
+                }
+            })
+        } else {
+            None
+        };
+
         Self {
             id: task.id.clone(),
+            task_id: Some(task.id.clone()),
             downloaded_bytes: task.downloaded_bytes,
             total_bytes: task.total_bytes,
             speed_bps: task.speed_bps,
             progress_percentage: task.progress_percentage,
+            progress_percent: Some(task.progress_percentage),
+            eta_secs,
             status: task.status,
             segments: task.segments.clone(),
             error_message: task.error_message.clone(),
@@ -242,5 +263,29 @@ mod tests {
         task.recalculate_progress();
         assert_eq!(task.downloaded_bytes, 500);
         assert!((task.progress_percentage - 50.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_progress_payload_conversion() {
+        let mut task = DownloadTask::new(
+            "test-2".to_string(),
+            "https://example.com/video.mp4".to_string(),
+            "/downloads/video.mp4".to_string(),
+            "video.mp4".to_string(),
+            Some(2000),
+            true,
+            None,
+            4,
+        );
+        task.downloaded_bytes = 1000;
+        task.speed_bps = 500;
+        task.progress_percentage = 50.0;
+
+        let payload = DownloadProgressPayload::from(&task);
+        assert_eq!(payload.id, "test-2");
+        assert_eq!(payload.task_id, Some("test-2".to_string()));
+        assert_eq!(payload.progress_percentage, 50.0);
+        assert_eq!(payload.progress_percent, Some(50.0));
+        assert_eq!(payload.eta_secs, Some(2)); // (2000 - 1000) / 500 = 2 seconds
     }
 }

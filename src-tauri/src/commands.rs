@@ -16,13 +16,15 @@ pub async fn probe_url(
 pub async fn start_download(
     url: String,
     save_path: Option<String>,
+    destination_path: Option<String>,
     file_name: Option<String>,
     connections: Option<usize>,
     app: AppHandle,
     manager: State<'_, DownloadManager>,
 ) -> Result<DownloadTask, String> {
+    let final_path = save_path.or(destination_path);
     manager
-        .start_download(&url, save_path, file_name, connections, Some(app))
+        .start_download(&url, final_path, file_name, connections, Some(app))
         .await
 }
 
@@ -69,10 +71,35 @@ pub async fn get_download(
         .ok_or_else(|| format!("Task {id} not found"))
 }
 
+/// Alias for get_download
+#[tauri::command]
+pub async fn get_task(
+    id: String,
+    manager: State<'_, DownloadManager>,
+) -> Result<Option<DownloadTask>, String> {
+    Ok(manager.get_task(&id).await)
+}
+
 /// Lists all current and past download tasks.
 #[tauri::command]
 pub async fn list_downloads(
     manager: State<'_, DownloadManager>,
 ) -> Result<Vec<DownloadTask>, String> {
     Ok(manager.list_tasks().await)
+}
+
+/// Alias for list_downloads
+#[tauri::command]
+pub async fn list_tasks(
+    manager: State<'_, DownloadManager>,
+) -> Result<Vec<DownloadTask>, String> {
+    Ok(manager.list_tasks().await)
+}
+
+/// Gets the system default download directory
+#[tauri::command]
+pub fn get_default_directory() -> String {
+    crate::manager::get_default_download_dir()
+        .to_string_lossy()
+        .to_string()
 }

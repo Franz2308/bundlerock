@@ -27,7 +27,10 @@ pub fn run() {
             resume_download,
             cancel_download,
             get_download,
-            list_downloads
+            get_task,
+            list_downloads,
+            list_tasks,
+            get_default_directory
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
