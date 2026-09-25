@@ -222,6 +222,7 @@ impl DownloadManager {
             }
 
             task.is_media = true;
+            task.is_animated_gif = media.is_animated_gif;
             if task.thumbnail_url.is_none() {
                 task.thumbnail_url = media.thumbnail_url.clone();
                 task.media_thumbnail = media.thumbnail_url;
@@ -468,6 +469,86 @@ impl DownloadManager {
         Ok(())
     }
 
+    /// Permanently removes a download task from memory and stops any active controller.
+    /// Under BundleRock rules, delete_file is false by default: user's files on disk are NEVER deleted unless explicitly requested.
+    pub async fn remove_task(&self, id: &str, delete_file: bool) -> Result<(), String> {
+        // Stop active controller if running
+        {
+            let mut controllers = self.controllers.lock().await;
+            if let Some(ctrl) = controllers.remove(id) {
+                let _ = ctrl.cancel_tx.send(true);
+            }
+        }
+
+        // Remove task from memory
+        let removed_task = {
+            let mut tasks = self.tasks.write().await;
+            tasks.remove(id)
+        };
+
+        let task = removed_task.ok_or_else(|| format!("Task {id} not found"))?;
+
+        if delete_file {
+            let file_path = PathBuf::from(&task.file_path);
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(150)).await;
+                if file_path.exists() {
+                    let _ = std::fs::remove_file(&file_path);
+                }
+                let part_file = PathBuf::from(format!("{}.part", file_path.display()));
+                if part_file.exists() {
+                    let _ = std::fs::remove_file(part_file);
+                }
+                let ytdl_file = PathBuf::from(format!("{}.ytdl", file_path.display()));
+                if ytdl_file.exists() {
+                    let _ = std::fs::remove_file(ytdl_file);
+                }
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Clears all download tasks from memory and stops all active controllers.
+    /// Under BundleRock rules, delete_file is false by default: downloaded files remain intact on disk.
+    pub async fn clear_all_tasks(&self, delete_file: bool) -> Result<(), String> {
+        // Stop all active controllers
+        {
+            let mut controllers = self.controllers.lock().await;
+            for (_, ctrl) in controllers.drain() {
+                let _ = ctrl.cancel_tx.send(true);
+            }
+        }
+
+        // Drain all tasks from memory
+        let tasks_to_clear: Vec<DownloadTask> = {
+            let mut tasks = self.tasks.write().await;
+            tasks.drain().map(|(_, v)| v).collect()
+        };
+
+        if delete_file {
+            for task in tasks_to_clear {
+                let file_path = PathBuf::from(&task.file_path);
+                tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                    if file_path.exists() {
+                        let _ = std::fs::remove_file(&file_path);
+                    }
+                    let part_file = PathBuf::from(format!("{}.part", file_path.display()));
+                    if part_file.exists() {
+                        let _ = std::fs::remove_file(part_file);
+                    }
+                    let ytdl_file = PathBuf::from(format!("{}.ytdl", file_path.display()));
+                    if ytdl_file.exists() {
+                        let _ = std::fs::remove_file(ytdl_file);
+                    }
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     /// Gets a snapshot of a download task.
     pub async fn get_task(&self, id: &str) -> Option<DownloadTask> {
         let tasks = self.tasks.read().await;
@@ -621,21 +702,36 @@ impl DownloadManager {
 
                         task.recalculate_progress();
 
-                        // Emit periodic event to frontend
-                        if let Some(ref app) = app_handle {
-                            let payload = DownloadProgressPayload::from(&task);
-                            let _ = app.emit("download-progress", payload);
-                        }
-
-                        // Persist snapshot in tasks map
+                        // Persist snapshot in tasks map only if task is still actively present
                         let mut tasks = tasks_map.write().await;
                         if let Some(stored) = tasks.get_mut(&task_id) {
                             if stored.status == DownloadStatus::Downloading {
                                 *stored = task.clone();
                             }
+                            // Emit periodic event to frontend only if task still exists in manager
+                            if let Some(ref app) = app_handle {
+                                let payload = DownloadProgressPayload::from(&task);
+                                let _ = app.emit("download-progress", payload);
+                            }
                         }
                     }
                 }
+            }
+
+            // Guard: If task was removed via remove_task or clear_all_tasks while running, do not resurrect or emit events
+            let is_still_in_map = {
+                let tasks = tasks_map.read().await;
+                tasks.contains_key(&task_id)
+            };
+
+            if !is_still_in_map {
+                let mut controllers = controllers_map.lock().await;
+                if let Some(ctrl) = controllers.get(&task_id) {
+                    if ctrl.session_id == session_id {
+                        controllers.remove(&task_id);
+                    }
+                }
+                return;
             }
 
             // Sync storage buffer to disk
@@ -769,6 +865,59 @@ mod tests {
 
         let res = manager.cancel_download("non-existent", false).await;
         assert!(res.is_err());
+
+        let res = manager.remove_task("non-existent", false).await;
+        assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_remove_and_clear_tasks() {
+        let manager = DownloadManager::new();
+
+        // Insert mock tasks directly into manager
+        {
+            let mut tasks = manager.tasks.write().await;
+            tasks.insert(
+                "task-1".to_string(),
+                DownloadTask::new(
+                    "task-1".to_string(),
+                    "https://example.com/file1.zip".to_string(),
+                    "/tmp/file1.zip".to_string(),
+                    "file1.zip".to_string(),
+                    Some(100),
+                    true,
+                    None,
+                    4,
+                ),
+            );
+            tasks.insert(
+                "task-2".to_string(),
+                DownloadTask::new(
+                    "task-2".to_string(),
+                    "https://example.com/file2.zip".to_string(),
+                    "/tmp/file2.zip".to_string(),
+                    "file2.zip".to_string(),
+                    Some(200),
+                    true,
+                    None,
+                    4,
+                ),
+            );
+        }
+
+        assert_eq!(manager.list_tasks().await.len(), 2);
+
+        // Remove task-1
+        let res = manager.remove_task("task-1", false).await;
+        assert!(res.is_ok());
+        assert_eq!(manager.list_tasks().await.len(), 1);
+        assert!(manager.get_task("task-1").await.is_none());
+        assert!(manager.get_task("task-2").await.is_some());
+
+        // Clear all tasks
+        let res = manager.clear_all_tasks(false).await;
+        assert!(res.is_ok());
+        assert_eq!(manager.list_tasks().await.len(), 0);
     }
 
     #[test]

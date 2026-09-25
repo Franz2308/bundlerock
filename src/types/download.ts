@@ -44,6 +44,7 @@ export interface MediaMetadata {
   platform_display: string;
   formats: MediaFormatOption[];
   gallery_items?: MediaGalleryItem[];
+  is_animated_gif?: boolean;
 }
 
 export interface ExtractorStatus {
@@ -89,6 +90,7 @@ export interface DownloadTask {
   media_format?: string | null;
   resolution?: string | null;
   stage_message?: string | null;
+  is_animated_gif?: boolean;
 }
 
 export interface ProbeResult {
@@ -121,6 +123,7 @@ export interface DownloadProgressPayload {
   duration_seconds?: number | null;
   resolution?: string | null;
   stage_message?: string | null;
+  is_animated_gif?: boolean;
 }
 
 export type FileCategory =

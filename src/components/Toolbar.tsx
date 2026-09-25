@@ -8,6 +8,7 @@ import {
   Plus,
   LayoutGrid,
   List,
+  CheckCircle,
 } from 'lucide-react';
 import { DownloadTask, FileCategory, StatusFilter } from '../types/download';
 
@@ -18,6 +19,7 @@ interface ToolbarProps {
   selectedStatus: StatusFilter;
   selectedTask: DownloadTask | null;
   onClearSelection: () => void;
+  totalTasksCount: number;
   activeDownloadsCount: number;
   pausedDownloadsCount: number;
   completedDownloadsCount: number;
@@ -27,6 +29,7 @@ interface ToolbarProps {
   onPause: () => void;
   onResume: () => void;
   onCancelOrDelete: () => void;
+  onClearCompleted?: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -36,6 +39,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   selectedStatus,
   selectedTask,
   onClearSelection,
+  totalTasksCount,
   activeDownloadsCount,
   pausedDownloadsCount,
   completedDownloadsCount,
@@ -45,6 +49,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onPause,
   onResume,
   onCancelOrDelete,
+  onClearCompleted,
 }) => {
   const getCategoryTitle = () => {
     switch (selectedCategory) {
@@ -53,7 +58,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       case 'audio':
         return 'Música y Audio';
       case 'image':
-        return 'Imágenes';
+        return 'Imágenes / GIFs';
       case 'document':
         return 'Documentos y Zips';
       case 'program':
@@ -101,12 +106,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     ? `Pausar (${activeDownloadsCount})`
     : 'Pausar';
 
-  const canDelete = Boolean(selectedTask || completedDownloadsCount > 0);
+  const canDelete = Boolean(selectedTask || totalTasksCount > 0);
   const deleteLabel = selectedTask
     ? 'Eliminar'
-    : completedDownloadsCount > 0
-    ? `Limpiar (${completedDownloadsCount})`
-    : 'Eliminar';
+    : totalTasksCount > 0
+    ? `Borrar todo (${totalTasksCount})`
+    : 'Borrar todo';
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900/80 px-6 flex items-center justify-between gap-4 backdrop-blur-md shrink-0">
@@ -205,7 +210,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           title={
             selectedTask
               ? `Eliminar ${selectedTask.file_name}`
-              : 'Limpiar descargas terminadas de la lista'
+              : 'Borrar todas las descargas del gestor'
           }
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
             canDelete
@@ -216,6 +221,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Trash2 className="w-3.5 h-3.5" />
           <span>{deleteLabel}</span>
         </button>
+
+        {/* Clear Completed Button */}
+        {!selectedTask && completedDownloadsCount > 0 && onClearCompleted && (
+          <button
+            onClick={onClearCompleted}
+            title={`Quitar ${completedDownloadsCount} descargas completadas del gestor`}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-all cursor-pointer"
+          >
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Limpiar completadas ({completedDownloadsCount})</span>
+          </button>
+        )}
 
         <div className="h-6 w-px bg-slate-800 mx-1" />
 

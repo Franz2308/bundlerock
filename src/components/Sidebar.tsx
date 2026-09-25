@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'all', label: 'Todos los archivos', icon: FolderOpen, accentColor: 'text-cyan-400' },
     { id: 'video', label: 'Videos', icon: Film, accentColor: 'text-purple-400' },
     { id: 'audio', label: 'Música y Audio', icon: Music, accentColor: 'text-pink-400' },
-    { id: 'image', label: 'Imágenes', icon: ImageIcon, accentColor: 'text-amber-400' },
+    { id: 'image', label: 'Imágenes / GIFs', icon: ImageIcon, accentColor: 'text-amber-400' },
     { id: 'document', label: 'Documentos y Zips', icon: FileText, accentColor: 'text-blue-400' },
     { id: 'program', label: 'Programas e ISOs', icon: Package, accentColor: 'text-emerald-400' },
     { id: 'other', label: 'Otros Archivos', icon: File, accentColor: 'text-slate-400' },

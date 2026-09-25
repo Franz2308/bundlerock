@@ -27,6 +27,8 @@ pub fn run() {
             pause_download,
             resume_download,
             cancel_download,
+            remove_task,
+            clear_all_tasks,
             get_download,
             get_task,
             list_downloads,

@@ -9,7 +9,8 @@ export function getFileExtension(filename: string): string {
   return parts[parts.length - 1].toLowerCase();
 }
 
-export function getFileCategory(filename: string): FileCategory {
+export function getFileCategory(filename: string, isAnimatedGif?: boolean): FileCategory {
+  if (isAnimatedGif) return 'image';
   const ext = getFileExtension(filename);
   if (!ext) return 'other';
 

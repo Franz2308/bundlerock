@@ -374,6 +374,169 @@ pub async fn install_ytdlp(_client: &reqwest::Client) -> Result<String, String> 
     Ok(target_file.to_string_lossy().to_string())
 }
 
+/// Determines if a Facebook URL points to a video/reel stream as opposed to a photo, album, or general post.
+pub fn is_facebook_video_url(url_str: &str) -> bool {
+    let lower = url_str.to_ascii_lowercase();
+    lower.contains("fb.watch")
+        || lower.contains("/watch")
+        || lower.contains("/reel")
+        || lower.contains("/reels")
+        || lower.contains("/videos/")
+        || lower.contains("video.php")
+        || lower.contains("/share/r/")
+        || lower.contains("/share/v/")
+}
+
+/// Helper to decode basic HTML entities in extracted meta content
+pub fn clean_html_entities(s: &str) -> String {
+    s.replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&#39;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+}
+
+/// Helper to parse OpenGraph and meta tags from HTML
+pub fn extract_meta_tag(html: &str, property: &str) -> Option<String> {
+    let prop_lower = property.to_ascii_lowercase();
+    for part in html.split('<') {
+        let tag = part.split('>').next().unwrap_or("");
+        let tag_trimmed = tag.trim_start();
+        let after_meta = tag_trimmed.strip_prefix("meta");
+        if !matches!(after_meta, Some(rest) if rest.starts_with(|c: char| c.is_whitespace())) {
+            continue;
+        }
+        let tag_lower = tag.to_ascii_lowercase();
+        if tag_lower.contains(&format!("property=\"{prop_lower}\""))
+            || tag_lower.contains(&format!("property='{prop_lower}'"))
+            || tag_lower.contains(&format!("name=\"{prop_lower}\""))
+            || tag_lower.contains(&format!("name='{prop_lower}'"))
+        {
+            if let Some(c_idx) = tag_lower.find("content=\"") {
+                let rest = &tag[c_idx + 9..];
+                if let Some(end_quote) = rest.find('"') {
+                    return Some(clean_html_entities(&rest[..end_quote]));
+                }
+            } else if let Some(c_idx) = tag_lower.find("content='") {
+                let rest = &tag[c_idx + 9..];
+                if let Some(end_quote) = rest.find('\'') {
+                    return Some(clean_html_entities(&rest[..end_quote]));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Helper to parse link tags like <link rel="image_src" href="..." /> from HTML
+pub fn extract_link_tag(html: &str, rel: &str) -> Option<String> {
+    let rel_lower = rel.to_ascii_lowercase();
+    for part in html.split('<') {
+        let tag = part.split('>').next().unwrap_or("");
+        let tag_trimmed = tag.trim_start();
+        let after_link = tag_trimmed.strip_prefix("link");
+        if !matches!(after_link, Some(rest) if rest.starts_with(|c: char| c.is_whitespace())) {
+            continue;
+        }
+        let tag_lower = tag.to_ascii_lowercase();
+        if tag_lower.contains(&format!("rel=\"{rel_lower}\""))
+            || tag_lower.contains(&format!("rel='{rel_lower}'"))
+        {
+            if let Some(c_idx) = tag_lower.find("href=\"") {
+                let rest = &tag[c_idx + 6..];
+                if let Some(end_quote) = rest.find('"') {
+                    return Some(clean_html_entities(&rest[..end_quote]));
+                }
+            } else if let Some(c_idx) = tag_lower.find("href='") {
+                let rest = &tag[c_idx + 6..];
+                if let Some(end_quote) = rest.find('\'') {
+                    return Some(clean_html_entities(&rest[..end_quote]));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Extracts OpenGraph image and metadata from a Facebook photo or post URL without forcing yt-dlp mp4 video downloads.
+pub async fn probe_facebook_photo_or_post(
+    client: &reqwest::Client,
+    target_url: &str,
+) -> Result<MediaMetadata, String> {
+    let resp = client
+        .get(target_url)
+        .header(
+            "User-Agent",
+            "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        )
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        )
+        .header("Accept-Language", "es-ES,es;q=0.9,en;q=0.8")
+        .timeout(Duration::from_secs(8))
+        .send()
+        .await;
+
+    let html = match resp {
+        Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
+        _ => {
+            if let Ok(r2) = client
+                .get(target_url)
+                .header(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                )
+                .timeout(Duration::from_secs(6))
+                .send()
+                .await
+            {
+                r2.text().await.unwrap_or_default()
+            } else {
+                String::new()
+            }
+        }
+    };
+
+    let og_image = extract_meta_tag(&html, "og:image")
+        .or_else(|| extract_meta_tag(&html, "og:image:url"))
+        .or_else(|| extract_meta_tag(&html, "twitter:image"))
+        .or_else(|| extract_link_tag(&html, "image_src"));
+
+    let og_title = extract_meta_tag(&html, "og:title")
+        .or_else(|| extract_meta_tag(&html, "twitter:title"))
+        .unwrap_or_else(|| "Foto de Facebook".to_string());
+
+    let og_description = extract_meta_tag(&html, "og:description");
+
+    if let Some(img_url) = og_image {
+        if img_url.starts_with("http://") || img_url.starts_with("https://") {
+            let clean_img = clean_html_entities(&img_url);
+            return Ok(MediaMetadata {
+                title: og_title,
+                uploader: og_description,
+                thumbnail_url: Some(clean_img.clone()),
+                duration_seconds: None,
+                platform: SocialMediaPlatform::Facebook,
+                platform_level: 2,
+                platform_display: "Facebook".to_string(),
+                formats: vec![], // No video formats: image downloads as accelerated HTTP
+                gallery_items: vec![MediaGalleryItem {
+                    url: clean_img.clone(),
+                    thumbnail_url: Some(clean_img),
+                    width: None,
+                    height: None,
+                    index: 0,
+                }],
+                is_animated_gif: false,
+            });
+        }
+    }
+
+    Err("Esta publicación o foto de Facebook no contiene un video o requiere iniciar sesión en Facebook. Para descargar fotos de Facebook con BundleRock, asegúrate de que la publicación sea de acceso público.".to_string())
+}
+
 /// Probes a multimedia URL: if yt-dlp is available, uses it to extract full video metadata and formats.
 /// If yt-dlp is not yet installed, uses fallback platform APIs (oEmbed/Reddit JSON) and defaults.
 pub async fn probe_media(
@@ -385,6 +548,11 @@ pub async fn probe_media(
         1,
         "Multimedia".to_string(),
     ));
+
+    // Level 2: Facebook photo / post differentiation (avoid forcing yt-dlp on photos)
+    if platform == SocialMediaPlatform::Facebook && !is_facebook_video_url(target_url) {
+        return probe_facebook_photo_or_post(client, target_url).await;
+    }
 
     // Try yt-dlp extraction first if available
     if let Some(ytdlp_path) = find_ytdlp() {
@@ -428,9 +596,30 @@ pub async fn probe_media(
                         if meta.gallery_items.is_empty() {
                             match platform {
                                 SocialMediaPlatform::Twitter => {
-                                    let (_, _, _, tw_items) = extract_twitter_data(client, target_url).await;
+                                    let (_, _, _, tw_items, tw_gif) = extract_twitter_data(client, target_url).await;
                                     if !tw_items.is_empty() {
                                         meta.gallery_items = tw_items;
+                                    }
+                                    if tw_gif && !meta.is_animated_gif {
+                                        meta.is_animated_gif = true;
+                                        meta.formats.insert(0, MediaFormatOption {
+                                            format_id: "twitter-gif".to_string(),
+                                            quality_label: "GIF Animado (.gif)".to_string(),
+                                            ext: "gif".to_string(),
+                                            resolution: Some("Animación GIF".to_string()),
+                                            filesize_approx: None,
+                                            is_audio_only: false,
+                                            format_note: Some("Convertir stream a archivo .gif con paleta optimizada".to_string()),
+                                        });
+                                        meta.formats.insert(1, MediaFormatOption {
+                                            format_id: "twitter-mp4".to_string(),
+                                            quality_label: "Video en bucle MP4 (.mp4)".to_string(),
+                                            ext: "mp4".to_string(),
+                                            resolution: Some("Video MP4".to_string()),
+                                            filesize_approx: None,
+                                            is_audio_only: false,
+                                            format_note: Some("Stream de video MP4 original sin reconvertir".to_string()),
+                                        });
                                     }
                                 }
                                 SocialMediaPlatform::Reddit => {
@@ -551,9 +740,39 @@ fn build_media_metadata_from_ytdlp_json(
         .unwrap_or(false);
     let has_video_or_audio = has_real_formats || !available_heights.is_empty() || has_audio;
 
+    let raw_json_str = json.to_string();
+    let is_animated_gif = if platform == SocialMediaPlatform::Twitter {
+        raw_json_str.contains("\"animated_gif\"")
+            || raw_json_str.contains("animated_gif")
+            || json.get("format_note").and_then(|v| v.as_str()).map(|n| n.contains("gif") || n.contains("animated_gif")).unwrap_or(false)
+            || json.get("description").and_then(|v| v.as_str()).map(|d| d.to_lowercase().contains("gif")).unwrap_or(false)
+            || json.get("title").and_then(|v| v.as_str()).map(|t| t.to_lowercase().contains("gif")).unwrap_or(false)
+    } else {
+        false
+    };
+
     let mut formats_list = Vec::new();
 
-    if has_video_or_audio {
+    if is_animated_gif {
+        formats_list.push(MediaFormatOption {
+            format_id: "twitter-gif".to_string(),
+            quality_label: "GIF Animado (.gif)".to_string(),
+            ext: "gif".to_string(),
+            resolution: Some("Animación GIF".to_string()),
+            filesize_approx: estimated_size_best,
+            is_audio_only: false,
+            format_note: Some("Convertir stream a archivo .gif con paleta optimizada FFmpeg".to_string()),
+        });
+        formats_list.push(MediaFormatOption {
+            format_id: "twitter-mp4".to_string(),
+            quality_label: "Video en bucle MP4 (.mp4)".to_string(),
+            ext: "mp4".to_string(),
+            resolution: Some("Video MP4".to_string()),
+            filesize_approx: estimated_size_best,
+            is_audio_only: false,
+            format_note: Some("Stream de video MP4 original sin reconvertir".to_string()),
+        });
+    } else if has_video_or_audio {
         let max_height = available_heights.first().copied().unwrap_or(720);
 
         // 1. Max quality original
@@ -696,6 +915,7 @@ fn build_media_metadata_from_ytdlp_json(
         platform_display,
         formats: formats_list,
         gallery_items,
+        is_animated_gif,
     }
 }
 
@@ -716,15 +936,16 @@ pub fn extract_twitter_status_id(url: &str) -> Option<String> {
 pub async fn extract_twitter_data(
     client: &reqwest::Client,
     target_url: &str,
-) -> (Option<String>, Option<String>, Option<String>, Vec<MediaGalleryItem>) {
+) -> (Option<String>, Option<String>, Option<String>, Vec<MediaGalleryItem>, bool) {
     let mut title = None;
     let mut uploader = None;
     let mut thumbnail_url = None;
     let mut gallery_items = Vec::new();
+    let mut is_animated_gif = false;
 
     let status_id = match extract_twitter_status_id(target_url) {
         Some(id) => id,
-        None => return (title, uploader, thumbnail_url, gallery_items),
+        None => return (title, uploader, thumbnail_url, gallery_items, false),
     };
 
     // 1. Try Twitter Public Syndication API
@@ -759,7 +980,14 @@ pub async fn extract_twitter_data(
                 if let Some(media_arr) = json.get("mediaDetails").and_then(|v| v.as_array()) {
                     for item in media_arr {
                         let m_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
-                        if m_type == "photo" {
+                        if m_type == "animated_gif" {
+                            is_animated_gif = true;
+                            if thumbnail_url.is_none() {
+                                if let Some(url_str) = item.get("media_url_https").and_then(|v| v.as_str()) {
+                                    thumbnail_url = Some(url_str.to_string());
+                                }
+                            }
+                        } else if m_type == "photo" {
                             if let Some(url_str) = item.get("media_url_https").and_then(|v| v.as_str()) {
                                 let orig_url = format!("{url_str}?name=orig");
                                 let thumb = format!("{url_str}?name=small");
@@ -835,7 +1063,14 @@ pub async fn extract_twitter_data(
                     if let Some(extended) = json.get("media_extended").and_then(|v| v.as_array()) {
                         for item in extended {
                             let t = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
-                            if t == "image" || t == "photo" {
+                            if t == "gif" || t == "animated_gif" {
+                                is_animated_gif = true;
+                                if thumbnail_url.is_none() {
+                                    if let Some(u) = item.get("url").and_then(|v| v.as_str()) {
+                                        thumbnail_url = Some(u.to_string());
+                                    }
+                                }
+                            } else if t == "image" || t == "photo" {
                                 if let Some(u) = item.get("url").and_then(|v| v.as_str()) {
                                     let w = item.get("size").and_then(|s| s.get("width")).and_then(|v| v.as_u64()).map(|v| v as u32);
                                     let h = item.get("size").and_then(|s| s.get("height")).and_then(|v| v.as_u64()).map(|v| v as u32);
@@ -871,7 +1106,7 @@ pub async fn extract_twitter_data(
         thumbnail_url = first_item.thumbnail_url.clone().or_else(|| Some(first_item.url.clone()));
     }
 
-    (title, uploader, thumbnail_url, gallery_items)
+    (title, uploader, thumbnail_url, gallery_items, is_animated_gif)
 }
 
 /// Extracts images/photos, video metadata, and gallery items from a Reddit post
@@ -1025,6 +1260,7 @@ async fn probe_media_fallback(
     let mut thumbnail_url = None;
     let mut duration_seconds = None;
     let mut gallery_items = Vec::new();
+    let mut is_animated_gif = false;
 
     match platform {
         SocialMediaPlatform::YouTube => {
@@ -1049,7 +1285,7 @@ async fn probe_media_fallback(
             }
         }
         SocialMediaPlatform::Twitter => {
-            let (tw_title, tw_uploader, tw_thumb, tw_gallery) = extract_twitter_data(client, target_url).await;
+            let (tw_title, tw_uploader, tw_thumb, tw_gallery, tw_gif) = extract_twitter_data(client, target_url).await;
             if let Some(t) = tw_title {
                 title = t;
             } else {
@@ -1076,6 +1312,9 @@ async fn probe_media_fallback(
                 thumbnail_url = Some(th);
             }
             gallery_items = tw_gallery;
+            if tw_gif {
+                is_animated_gif = true;
+            }
         }
         SocialMediaPlatform::Reddit => {
             let (r_title, r_uploader, r_thumb, r_dur, _r_res, r_gallery) = extract_reddit_data(client, target_url).await;
@@ -1094,6 +1333,9 @@ async fn probe_media_fallback(
             gallery_items = r_gallery;
         }
         SocialMediaPlatform::Facebook => {
+            if !is_facebook_video_url(target_url) {
+                return probe_facebook_photo_or_post(client, target_url).await;
+            }
             title = "Video de Facebook".to_string();
         }
         SocialMediaPlatform::Other => {
@@ -1104,11 +1346,33 @@ async fn probe_media_fallback(
     let has_video = match platform {
         SocialMediaPlatform::Twitter => gallery_items.is_empty(),
         SocialMediaPlatform::Reddit => duration_seconds.is_some() || gallery_items.is_empty(),
+        SocialMediaPlatform::Facebook => is_facebook_video_url(target_url),
         _ => true,
     };
 
-    // Standard fallback formats list (only when post contains video/audio)
-    let formats = if has_video {
+    // Standard fallback formats list
+    let formats = if is_animated_gif {
+        vec![
+            MediaFormatOption {
+                format_id: "twitter-gif".to_string(),
+                quality_label: "GIF Animado (.gif)".to_string(),
+                ext: "gif".to_string(),
+                resolution: Some("Animación GIF".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Convertir stream a archivo .gif con paleta optimizada FFmpeg".to_string()),
+            },
+            MediaFormatOption {
+                format_id: "twitter-mp4".to_string(),
+                quality_label: "Video en bucle MP4 (.mp4)".to_string(),
+                ext: "mp4".to_string(),
+                resolution: Some("Video MP4".to_string()),
+                filesize_approx: None,
+                is_audio_only: false,
+                format_note: Some("Stream de video MP4 original sin reconvertir".to_string()),
+            },
+        ]
+    } else if has_video {
         vec![
             MediaFormatOption {
                 format_id: "bestvideo+bestaudio/best".to_string(),
@@ -1179,6 +1443,7 @@ async fn probe_media_fallback(
         platform_display,
         formats,
         gallery_items,
+        is_animated_gif,
     })
 }
 
@@ -1227,14 +1492,21 @@ pub async fn download_media_stream(
         .and_then(|s| s.to_str())
         .unwrap_or("video");
 
-    let chosen_format = format_id
-        .filter(|f| !f.trim().is_empty())
-        .unwrap_or_else(|| "bestvideo+bestaudio/best".to_string());
+    let chosen_format = match format_id.as_deref() {
+        Some("twitter-gif") | Some("twitter-mp4") => "bestvideo/best".to_string(),
+        Some(f) if !f.trim().is_empty() => f.to_string(),
+        _ => "bestvideo+bestaudio/best".to_string(),
+    };
 
-    let is_mp3 = chosen_format == "audio-mp3" || task.file_name.ends_with(".mp3");
-    let is_m4a = chosen_format.starts_with("bestaudio") || task.file_name.ends_with(".m4a");
+    let is_gif_output = format_id.as_deref() == Some("twitter-gif")
+        || task.media_format.as_deref() == Some("twitter-gif")
+        || task.file_name.to_lowercase().ends_with(".gif");
+
+    let is_mp3 = chosen_format == "audio-mp3" || task.file_name.to_lowercase().ends_with(".mp3");
+    let is_m4a = chosen_format.starts_with("bestaudio") || task.file_name.to_lowercase().ends_with(".m4a");
 
     let mut cmd = tokio::process::Command::new(&ytdlp_path);
+    cmd.env("PYTHONUNBUFFERED", "1");
     cmd.arg(&task.url);
 
     // Multi-threaded fragment downloading for DASH and HLS streams
@@ -1272,6 +1544,7 @@ pub async fn download_media_stream(
     // Allow resuming partial downloads
     cmd.arg("-c");
     cmd.arg("--newline");
+    cmd.arg("--progress-delta").arg("0.5");
     cmd.arg("--no-colors");
     cmd.arg("--no-playlist");
 
@@ -1397,10 +1670,18 @@ pub async fn download_media_stream(
                                 task.progress_percentage = task.progress_percentage.max(pct).clamp(0.0, 99.9);
                                 if last_emit.elapsed() >= Duration::from_millis(250) {
                                     last_emit = std::time::Instant::now();
-                                    if let Some(ref app) = app_clone {
-                                        let mut payload = DownloadProgressPayload::from(&task);
-                                        payload.stage_message = task.stage_message.clone();
-                                        let _ = app.emit("download-progress", payload);
+                                    task.updated_at = crate::models::now_millis();
+
+                                    let mut tasks = tasks_map_clone.write().await;
+                                    if let Some(t) = tasks.get_mut(&task_id) {
+                                        if t.status == DownloadStatus::Downloading {
+                                            *t = task.clone();
+                                        }
+                                        if let Some(ref app) = app_clone {
+                                            let mut payload = DownloadProgressPayload::from(&task);
+                                            payload.stage_message = task.stage_message.clone();
+                                            let _ = app.emit("download-progress", payload);
+                                        }
                                     }
                                 }
                             }
@@ -1416,14 +1697,15 @@ pub async fn download_media_stream(
                 if current_stage != task.stage_message {
                     task.stage_message = current_stage;
                     task.updated_at = crate::models::now_millis();
-                    if let Some(ref app) = app_clone {
-                        let mut payload = DownloadProgressPayload::from(&task);
-                        payload.stage_message = task.stage_message.clone();
-                        let _ = app.emit("download-progress", payload);
-                    }
+
                     let mut tasks = tasks_map_clone.write().await;
                     if let Some(t) = tasks.get_mut(&task_id) {
                         t.stage_message = task.stage_message.clone();
+                        if let Some(ref app) = app_clone {
+                            let mut payload = DownloadProgressPayload::from(&task);
+                            payload.stage_message = task.stage_message.clone();
+                            let _ = app.emit("download-progress", payload);
+                        }
                     }
                 }
             }
@@ -1434,6 +1716,10 @@ pub async fn download_media_stream(
                         let tasks = tasks_map_clone.read().await;
                         tasks.get(&task_id).map(|t| t.status)
                     };
+                    if current_status.is_none() {
+                        // Task was removed from memory via remove_task or clear_all_tasks!
+                        return Ok(());
+                    }
                     let final_status = match current_status {
                         Some(DownloadStatus::Paused) => DownloadStatus::Paused,
                         _ => DownloadStatus::Cancelled,
@@ -1441,15 +1727,15 @@ pub async fn download_media_stream(
 
                     task.status = final_status;
                     task.speed_bps = 0;
-                    if let Some(ref app) = app_clone {
-                        let mut payload = DownloadProgressPayload::from(&task);
-                        payload.status = final_status;
-                        let _ = app.emit("download-progress", payload);
-                    }
                     let mut tasks = tasks_map_clone.write().await;
                     if let Some(t) = tasks.get_mut(&task_id) {
                         t.status = final_status;
                         t.speed_bps = 0;
+                        if let Some(ref app) = app_clone {
+                            let mut payload = DownloadProgressPayload::from(&task);
+                            payload.status = final_status;
+                            let _ = app.emit("download-progress", payload);
+                        }
                     }
                     return Ok(());
                 }
@@ -1458,6 +1744,15 @@ pub async fn download_media_stream(
     }
 
     let status = child.wait().await.map_err(|e| e.to_string())?;
+
+    // Guard: If task was removed from memory while downloading, do not resurrect or emit events!
+    let is_still_in_map = {
+        let tasks = tasks_map_clone.read().await;
+        tasks.contains_key(&task_id)
+    };
+    if !is_still_in_map {
+        return Ok(());
+    }
 
     if status.success() {
         // Resolve final output file location
@@ -1487,12 +1782,48 @@ pub async fn download_media_stream(
             candidate
         };
 
-        let file_size = std::fs::metadata(&resolved_file)
+        // If GIF output requested, convert the downloaded video stream to high-quality GIF using FFmpeg
+        let mut final_resolved_file = resolved_file;
+        if is_gif_output {
+            let gif_target = parent_dir.join(format!("{stem}.gif"));
+            if let Some(ref ffp) = ffmpeg_path {
+                task.stage_message = Some("Convirtiendo stream a GIF animado con FFmpeg...".to_string());
+                if let Some(ref app) = app_clone {
+                    let mut payload = DownloadProgressPayload::from(&task);
+                    payload.stage_message = task.stage_message.clone();
+                    let _ = app.emit("download-progress", payload);
+                }
+
+                let mut fcmd = tokio::process::Command::new(ffp);
+                fcmd.arg("-y")
+                    .arg("-i").arg(&final_resolved_file)
+                    .arg("-vf").arg("fps=15,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse")
+                    .arg(&gif_target);
+
+                #[cfg(windows)]
+                {
+                    fcmd.creation_flags(0x08000000);
+                }
+
+                if let Ok(f_status) = fcmd.status().await {
+                    if f_status.success() && gif_target.exists() {
+                        if final_resolved_file != gif_target && final_resolved_file.exists() {
+                            let _ = std::fs::remove_file(&final_resolved_file);
+                        }
+                        final_resolved_file = gif_target;
+                    }
+                }
+            } else {
+                task.error_message = Some("FFmpeg no encontrado. Se conservó el video en bucle original MP4.".to_string());
+            }
+        }
+
+        let file_size = std::fs::metadata(&final_resolved_file)
             .map(|m| m.len())
             .unwrap_or(task.downloaded_bytes);
 
-        task.file_path = resolved_file.to_string_lossy().to_string();
-        task.file_name = resolved_file
+        task.file_path = final_resolved_file.to_string_lossy().to_string();
+        task.file_name = final_resolved_file
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or(&task.file_name)
@@ -1503,7 +1834,7 @@ pub async fn download_media_stream(
         task.progress_percentage = 100.0;
         task.speed_bps = 0;
         task.status = DownloadStatus::Completed;
-        task.stage_message = Some("Descarga y ensamblado completado con éxito".to_string());
+        task.stage_message = Some("Descarga y procesamiento completado con éxito".to_string());
         task.updated_at = crate::models::now_millis();
 
         let mut seg = DownloadSegment::new(0, 0, if file_size > 0 { file_size - 1 } else { 0 });
@@ -1512,16 +1843,17 @@ pub async fn download_media_stream(
         seg.status = SegmentStatus::Completed;
         task.segments = vec![seg];
 
-        // Emit final progress and finished event
-        if let Some(ref app) = app_clone {
-            let mut payload = DownloadProgressPayload::from(&task);
-            payload.stage_message = task.stage_message.clone();
-            let _ = app.emit("download-progress", payload);
-            let _ = app.emit("download-finished", task.clone());
-        }
-
+        // Guard before updating and emitting final event
         let mut tasks = tasks_map_clone.write().await;
-        tasks.insert(task_id, task);
+        if tasks.contains_key(&task_id) {
+            tasks.insert(task_id.clone(), task.clone());
+            if let Some(ref app) = app_clone {
+                let mut payload = DownloadProgressPayload::from(&task);
+                payload.stage_message = task.stage_message.clone();
+                let _ = app.emit("download-progress", payload);
+                let _ = app.emit("download-finished", task.clone());
+            }
+        }
 
         Ok(())
     } else {
@@ -1533,16 +1865,15 @@ pub async fn download_media_stream(
 
         task.status = DownloadStatus::Failed;
         task.error_message = Some(err_detail.clone());
-        task.speed_bps = 0;
-
-        if let Some(ref app) = app_clone {
-            let mut payload = DownloadProgressPayload::from(&task);
-            payload.error_message = Some(err_detail.clone());
-            let _ = app.emit("download-progress", payload);
-        }
-
         let mut tasks = tasks_map_clone.write().await;
-        tasks.insert(task_id, task);
+        if tasks.contains_key(&task_id) {
+            tasks.insert(task_id, task.clone());
+            if let Some(ref app) = app_clone {
+                let mut payload = DownloadProgressPayload::from(&task);
+                payload.error_message = Some(err_detail.clone());
+                let _ = app.emit("download-progress", payload);
+            }
+        }
 
         Err(err_detail)
     }
@@ -1774,5 +2105,105 @@ mod tests {
         assert_eq!(metadata.gallery_items[0].width, Some(1920));
         assert_eq!(metadata.gallery_items[1].index, 1);
         assert_eq!(metadata.formats.len(), 0);
+    }
+
+    #[test]
+    fn test_is_facebook_video_url() {
+        assert!(is_facebook_video_url("https://www.facebook.com/watch/?v=123456789"));
+        assert!(is_facebook_video_url("https://fb.watch/abcd1234/"));
+        assert!(is_facebook_video_url("https://www.facebook.com/reel/123456789"));
+        assert!(is_facebook_video_url("https://facebook.com/user/videos/123456/"));
+        assert!(is_facebook_video_url("https://facebook.com/share/r/abcde/"));
+
+        // Non-video Facebook posts
+        assert!(!is_facebook_video_url("https://www.facebook.com/photo/?fbid=123456&set=a.123"));
+        assert!(!is_facebook_video_url("https://www.facebook.com/photo.php?fbid=123456"));
+        assert!(!is_facebook_video_url("https://www.facebook.com/permalink.php?story_fbid=123"));
+        assert!(!is_facebook_video_url("https://www.facebook.com/username/posts/123456"));
+        assert!(!is_facebook_video_url("https://www.facebook.com/username/photos/123456"));
+        assert!(!is_facebook_video_url("https://www.facebook.com/media/set/?set=a.123456"));
+    }
+
+    #[test]
+    fn test_extract_meta_tag_and_clean_entities() {
+        let sample_html = r#"
+            <html>
+                <head>
+                    <meta property="og:title" content="Sample &amp; Beautiful Photo" />
+                    <meta
+                        property="og:image"
+                        content="https://scontent.xx.fbcdn.net/v/t39.30808-6/photo.jpg?stp=dst-jpg&amp;oh=123" />
+                    <meta name="description" content="A description with &quot;quotes&quot;" />
+                </head>
+            </html>
+        "#;
+
+        assert_eq!(
+            extract_meta_tag(sample_html, "og:title"),
+            Some("Sample & Beautiful Photo".to_string())
+        );
+        assert_eq!(
+            extract_meta_tag(sample_html, "og:image"),
+            Some("https://scontent.xx.fbcdn.net/v/t39.30808-6/photo.jpg?stp=dst-jpg&oh=123".to_string())
+        );
+        assert_eq!(
+            extract_meta_tag(sample_html, "description"),
+            Some("A description with \"quotes\"".to_string())
+        );
+        assert_eq!(extract_meta_tag(sample_html, "nonexistent"), None);
+    }
+
+    #[test]
+    fn test_extract_link_tag() {
+        let sample_html = r#"
+            <html>
+                <head>
+                    <link rel="image_src" href="https://example.com/facebook_photo.jpg" />
+                    <link rel="canonical" href="https://example.com/post/123" />
+                </head>
+            </html>
+        "#;
+
+        assert_eq!(
+            extract_link_tag(sample_html, "image_src"),
+            Some("https://example.com/facebook_photo.jpg".to_string())
+        );
+        assert_eq!(
+            extract_link_tag(sample_html, "canonical"),
+            Some("https://example.com/post/123".to_string())
+        );
+        assert_eq!(extract_link_tag(sample_html, "nonexistent"), None);
+    }
+
+    #[test]
+    fn test_twitter_animated_gif_metadata() {
+        let raw_json = serde_json::json!({
+            "title": "Funny Reaction GIF",
+            "uploader": "TwitterUser",
+            "format_note": "animated_gif",
+            "formats": [
+                {
+                    "format_id": "0",
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                    "acodec": "none",
+                    "filesize": 1_200_000
+                }
+            ]
+        });
+
+        let metadata = build_media_metadata_from_ytdlp_json(
+            raw_json,
+            SocialMediaPlatform::Twitter,
+            1,
+            "X (Twitter)".to_string(),
+        );
+
+        assert!(metadata.is_animated_gif);
+        assert_eq!(metadata.formats.len(), 2);
+        assert_eq!(metadata.formats[0].format_id, "twitter-gif");
+        assert_eq!(metadata.formats[0].ext, "gif");
+        assert_eq!(metadata.formats[1].format_id, "twitter-mp4");
+        assert_eq!(metadata.formats[1].ext, "mp4");
     }
 }

@@ -87,6 +87,29 @@ pub async fn cancel_download(
         .await
 }
 
+/// Permanently removes a download task from memory and optionally deletes the file from disk.
+#[tauri::command]
+pub async fn remove_task(
+    id: String,
+    delete_file: Option<bool>,
+    manager: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    manager
+        .remove_task(&id, delete_file.unwrap_or(false))
+        .await
+}
+
+/// Clears all download tasks from memory and optionally deletes files from disk.
+#[tauri::command]
+pub async fn clear_all_tasks(
+    delete_file: Option<bool>,
+    manager: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    manager
+        .clear_all_tasks(delete_file.unwrap_or(false))
+        .await
+}
+
 /// Retrieves the status and details of a single download task.
 #[tauri::command]
 pub async fn get_download(

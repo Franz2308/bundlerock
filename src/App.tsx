@@ -16,7 +16,8 @@ import {
   startDownload,
   pauseDownload,
   resumeDownload,
-  cancelDownload,
+  removeTask,
+  clearAllTasks,
   openFile,
   openContainingFolder,
   onDownloadProgress,
@@ -88,6 +89,7 @@ export function App() {
               duration_seconds: payload.duration_seconds !== undefined ? payload.duration_seconds : old.duration_seconds,
               media_duration: payload.media_duration !== undefined ? payload.media_duration : old.media_duration,
               resolution: payload.resolution !== undefined ? payload.resolution : old.resolution,
+              is_animated_gif: payload.is_animated_gif !== undefined ? payload.is_animated_gif : old.is_animated_gif,
               updated_at: Date.now(),
             };
             return updated;
@@ -111,6 +113,7 @@ export function App() {
                 duration_seconds: payload.duration_seconds !== undefined ? payload.duration_seconds : prev.duration_seconds,
                 media_duration: payload.media_duration !== undefined ? payload.media_duration : prev.media_duration,
                 resolution: payload.resolution !== undefined ? payload.resolution : prev.resolution,
+                is_animated_gif: payload.is_animated_gif !== undefined ? payload.is_animated_gif : prev.is_animated_gif,
               };
             }
             return prev;
@@ -118,9 +121,11 @@ export function App() {
         });
 
         unlistenFinished = await onDownloadFinished((finishedTask: DownloadTask) => {
-          setTasks((prevTasks) =>
-            prevTasks.map((t) => (t.id === finishedTask.id ? { ...t, ...finishedTask } : t))
-          );
+          setTasks((prevTasks) => {
+            const exists = prevTasks.some((t) => t.id === finishedTask.id);
+            if (!exists) return prevTasks;
+            return prevTasks.map((t) => (t.id === finishedTask.id ? { ...t, ...finishedTask } : t));
+          });
           setInspectingTask((prev) =>
             prev && prev.id === finishedTask.id ? { ...prev, ...finishedTask } : prev
           );
@@ -149,7 +154,7 @@ export function App() {
     return tasks.filter((task) => {
       // 1. Category Filter
       if (selectedCategory !== 'all') {
-        const cat = getFileCategory(task.file_name);
+        const cat = getFileCategory(task.file_name, task.is_animated_gif);
         if (cat !== selectedCategory) return false;
       }
 
@@ -192,7 +197,7 @@ export function App() {
     };
 
     for (const t of tasks) {
-      const cat = getFileCategory(t.file_name);
+      const cat = getFileCategory(t.file_name, t.is_animated_gif);
       counts[cat] = (counts[cat] || 0) + 1;
     }
 
@@ -276,17 +281,30 @@ export function App() {
   };
 
   const handleCancel = async (id: string, deleteFile = false) => {
+    // Optimistically remove from state immediately
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (selectedTaskId === id) {
+      setSelectedTaskId(null);
+    }
+    if (inspectingTask?.id === id) {
+      setInspectingTask(null);
+    }
     try {
-      await cancelDownload(id, deleteFile);
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-      if (selectedTaskId === id) {
-        setSelectedTaskId(null);
-      }
-      if (inspectingTask?.id === id) {
-        setInspectingTask(null);
-      }
+      await removeTask(id, deleteFile);
     } catch (err) {
-      console.error('Failed to cancel download:', err);
+      console.error('Failed to remove download task:', err);
+    }
+  };
+
+  const handleClearAll = async (deleteFile = false) => {
+    // Purge state immediately
+    setTasks([]);
+    setSelectedTaskId(null);
+    setInspectingTask(null);
+    try {
+      await clearAllTasks(deleteFile);
+    } catch (err) {
+      console.error('Failed to clear all tasks:', err);
     }
   };
 
@@ -310,14 +328,20 @@ export function App() {
     const doneTasks = tasks.filter(
       (t) => t.status === 'completed' || t.status === 'cancelled' || t.status === 'failed'
     );
-    for (const t of doneTasks) {
-      await cancelDownload(t.id, false).catch(() => {});
-    }
     setTasks((prev) =>
       prev.filter(
         (t) => t.status !== 'completed' && t.status !== 'cancelled' && t.status !== 'failed'
       )
     );
+    if (selectedTaskId && doneTasks.some((t) => t.id === selectedTaskId)) {
+      setSelectedTaskId(null);
+    }
+    if (inspectingTask && doneTasks.some((t) => t.id === inspectingTask.id)) {
+      setInspectingTask(null);
+    }
+    for (const t of doneTasks) {
+      await removeTask(t.id, false).catch(() => {});
+    }
   };
 
   const handleToolbarPause = async () => {
@@ -344,7 +368,7 @@ export function App() {
       await handleCancel(selectedTask.id, false);
       setSelectedTaskId(null);
     } else {
-      await handleClearCompleted();
+      await handleClearAll(false);
     }
   };
 
@@ -374,6 +398,7 @@ export function App() {
           selectedStatus={selectedStatus}
           selectedTask={selectedTask}
           onClearSelection={() => setSelectedTaskId(null)}
+          totalTasksCount={tasks.length}
           activeDownloadsCount={totalActiveDownloads}
           pausedDownloadsCount={statusCounts.paused}
           completedDownloadsCount={statusCounts.completed}
@@ -383,6 +408,7 @@ export function App() {
           onPause={handleToolbarPause}
           onResume={handleToolbarResume}
           onCancelOrDelete={handleToolbarCancelOrDelete}
+          onClearCompleted={handleClearCompleted}
         />
 
         {/* Downloads Scrollable View */}

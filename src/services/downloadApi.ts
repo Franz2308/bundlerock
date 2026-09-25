@@ -58,6 +58,14 @@ export async function cancelDownload(id: string, deleteFile = false): Promise<vo
   await invoke('cancel_download', { id, deleteFile });
 }
 
+export async function removeTask(id: string, deleteFile = false): Promise<void> {
+  await invoke('remove_task', { id, deleteFile });
+}
+
+export async function clearAllTasks(deleteFile = false): Promise<void> {
+  await invoke('clear_all_tasks', { deleteFile });
+}
+
 export async function listTasks(): Promise<DownloadTask[]> {
   try {
     return await invoke<DownloadTask[]>('list_downloads');

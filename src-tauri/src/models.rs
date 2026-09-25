@@ -115,6 +115,8 @@ pub struct MediaMetadata {
     pub formats: Vec<MediaFormatOption>,
     #[serde(default)]
     pub gallery_items: Vec<MediaGalleryItem>,
+    #[serde(default)]
+    pub is_animated_gif: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -161,6 +163,8 @@ pub struct DownloadTask {
     pub resolution: Option<String>,
     #[serde(default)]
     pub stage_message: Option<String>,
+    #[serde(default)]
+    pub is_animated_gif: bool,
 }
 
 impl DownloadTask {
@@ -202,6 +206,7 @@ impl DownloadTask {
             media_format: None,
             resolution: None,
             stage_message: None,
+            is_animated_gif: false,
         }
     }
 
@@ -265,6 +270,8 @@ pub struct DownloadProgressPayload {
     pub resolution: Option<String>,
     #[serde(default)]
     pub stage_message: Option<String>,
+    #[serde(default)]
+    pub is_animated_gif: bool,
 }
 
 impl From<&DownloadTask> for DownloadProgressPayload {
@@ -300,6 +307,7 @@ impl From<&DownloadTask> for DownloadProgressPayload {
             duration_seconds: task.duration_seconds.or(task.media_duration),
             resolution: task.resolution.clone(),
             stage_message: task.stage_message.clone(),
+            is_animated_gif: task.is_animated_gif,
         }
     }
 }

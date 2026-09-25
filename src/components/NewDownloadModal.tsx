@@ -147,16 +147,24 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
         setActiveTab('video');
       }
 
+      let initialFileName = res.file_name;
       if (res.media_info && res.media_info.formats.length > 0) {
         // Select first format by default
         const defaultFmt = res.media_info.formats[0];
         setSelectedFormatId(defaultFmt.format_id);
         setConnections(4);
+
+        if (res.media_info.is_animated_gif && defaultFmt.ext === 'gif') {
+          const dotIndex = initialFileName.lastIndexOf('.');
+          const baseName = dotIndex !== -1 ? initialFileName.substring(0, dotIndex) : initialFileName;
+          initialFileName = `${baseName}.gif`;
+        }
       } else if (res.suggested_connections) {
         setConnections(res.suggested_connections);
       } else if (!res.accept_ranges) {
         setConnections(1);
       }
+      setFileName(initialFileName);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -530,6 +538,26 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Twitter / X Animated GIF Banner */}
+              {media.is_animated_gif && (
+                <div className="p-3 rounded-xl bg-pink-950/40 border border-pink-800/60 flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-pink-900/60 border border-pink-700/60 text-pink-300 shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs">
+                    <div className="font-bold text-pink-200 flex items-center gap-1.5">
+                      <span>GIF Animado detectado</span>
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-pink-900/80 text-pink-200 border border-pink-700">
+                        Twitter / X
+                      </span>
+                    </div>
+                    <div className="text-slate-300 mt-0.5 leading-relaxed text-[11px]">
+                      Puedes descargarlo como una animación <strong>.gif</strong> real (con paleta de colores optimizada) o como un video <strong>.mp4</strong> en bucle continuo.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tab Selector if both Gallery and Video Formats exist */}
               {gallery.length > 0 && media.formats.length > 0 && (

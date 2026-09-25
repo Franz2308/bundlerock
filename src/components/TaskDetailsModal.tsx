@@ -7,6 +7,7 @@ import {
   Clock,
   Film,
   ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { DownloadTask } from '../types/download';
 import {
@@ -35,7 +36,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   const [imgError, setImgError] = useState(false);
   if (!task) return null;
 
-  const category = getFileCategory(task.file_name);
+  const category = getFileCategory(task.file_name, task.is_animated_gif);
   const thumbnail = task.thumbnail_url || task.media_thumbnail;
   const duration = task.duration_seconds ?? task.media_duration;
   const resolution = task.resolution;
@@ -86,6 +87,12 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                   {task.media_platform && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/60">
                       {task.media_platform}
+                    </span>
+                  )}
+                  {(task.is_animated_gif || task.file_name.toLowerCase().endsWith('.gif')) && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-950/80 text-pink-300 border border-pink-700/60 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-pink-400" />
+                      GIF Animado
                     </span>
                   )}
                   {resolution && (
