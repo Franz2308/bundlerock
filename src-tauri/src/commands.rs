@@ -1,6 +1,6 @@
 use crate::manager::DownloadManager;
 use crate::models::{DownloadTask, ExtractorStatus, ProbeResult};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, State, Window};
 
 /// Probes a download URL to detect file size, range support, ETag, and file name (or multimedia streams).
 #[tauri::command]
@@ -154,3 +154,37 @@ pub fn get_default_directory() -> String {
         .to_string_lossy()
         .to_string()
 }
+
+/// Minimizes the application window.
+#[tauri::command]
+pub fn minimize_window(window: Window) -> Result<(), String> {
+    window.minimize().map_err(|e| e.to_string())
+}
+
+/// Toggles maximize / unmaximize on the application window.
+#[tauri::command]
+pub fn toggle_maximize_window(window: Window) -> Result<bool, String> {
+    let is_max = window.is_maximized().map_err(|e| e.to_string())?;
+    if is_max {
+        window.unmaximize().map_err(|e| e.to_string())?;
+        Ok(false)
+    } else {
+        window.maximize().map_err(|e| e.to_string())?;
+        Ok(true)
+    }
+}
+
+/// Checks whether the application window is currently maximized.
+#[tauri::command]
+pub fn is_window_maximized(window: Window) -> Result<bool, String> {
+    window.is_maximized().map_err(|e| e.to_string())
+}
+
+/// Closes the application window immediately and exits cleanly.
+#[tauri::command]
+pub fn close_window(window: Window, app: AppHandle) -> Result<(), String> {
+    let _ = window.destroy();
+    app.exit(0);
+    std::process::exit(0);
+}
+

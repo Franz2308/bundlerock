@@ -374,29 +374,29 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     switch (level) {
       case 1:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Nivel 1 • {platformDisplay}
           </span>
         );
       case 2:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
             Nivel 2 • {platformDisplay}
           </span>
         );
       case 3:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             Nivel 3 • {platformDisplay}
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
             Multimedia • {platformDisplay}
           </span>
         );
@@ -404,65 +404,60 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl shadow-cyan-950/40 overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Zap className="w-5 h-5 fill-cyan-400" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-100">
-                Nueva Descarga
-              </h2>
-              <p className="text-xs text-slate-400">
-                Aceleración multihilo y extracción de redes sociales
-              </p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
+      <div className="relative w-full max-w-xl bg-slate-100 border border-slate-400 shadow-2xl text-slate-800 flex flex-col max-h-[92vh]">
+        {/* Classic Win32 Dialog Header */}
+        <div className="px-3 py-1.5 border-b border-slate-300 flex items-center justify-between bg-[#1a365d] text-white shrink-0">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-cyan-300" />
+            <h2 className="text-xs font-bold uppercase tracking-wide">
+              Nueva Descarga
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-0.5 hover:bg-red-600 text-white transition-colors cursor-pointer"
+            title="Cerrar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto text-xs">
           {/* URL Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-300">
-              Enlace de descarga o video (YouTube, X, Facebook, Reddit o directo)
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-700">
+              Enlace de descarga o video (YouTube, X, Facebook, Reddit o directo):
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <input
                 type="url"
                 required
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://youtube.com/watch?v=... o https://ejemplo.com/archivo.zip"
-                className="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all font-mono"
+                className="flex-1 bg-white border border-slate-400 px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
               />
               <button
                 type="button"
                 onClick={handlePaste}
                 title="Pegar enlace del portapapeles"
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700 transition-colors cursor-pointer shrink-0"
+                className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 text-xs shadow-sm active:shadow-inner flex items-center gap-1 cursor-pointer shrink-0 font-medium"
               >
-                <ClipboardPaste className="w-4 h-4" />
+                <ClipboardPaste className="w-3.5 h-3.5 text-slate-700" />
+                <span>Pegar</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleProbe(url)}
                 disabled={!url.trim() || probing}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+                className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 border border-slate-400 text-slate-800 text-xs shadow-sm active:shadow-inner flex items-center gap-1 cursor-pointer shrink-0 font-medium"
               >
                 {probing ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                 )}
                 <span>Inspeccionar</span>
               </button>
@@ -471,67 +466,65 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
           {/* Probing Progress */}
           {probing && (
-            <div className="p-3 rounded-xl bg-slate-950/60 border border-cyan-500/20 flex items-center gap-3 animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-              <span className="text-xs text-slate-300">
-                Analizando enlace, extrayendo metadatos y detectando formatos...
-              </span>
+            <div className="p-2.5 bg-blue-50 border border-blue-300 flex items-center gap-2 text-xs text-blue-800 animate-pulse">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <span>Analizando enlace, extrayendo metadatos y detectando formatos...</span>
             </div>
           )}
 
           {/* Error Message */}
           {probeError && (
-            <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 flex items-start gap-2.5 text-xs text-rose-200">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-2.5 bg-red-50 border border-red-300 flex items-start gap-2 text-xs text-red-700">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <span>{probeError}</span>
             </div>
           )}
 
           {/* SOCIAL MEDIA / MULTIMEDIA CARD */}
           {media && !probing && (
-            <div className="p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/30 space-y-3.5 shadow-lg shadow-cyan-950/20 animate-in fade-in zoom-in-95">
+            <div className="p-3 bg-white border border-slate-300 space-y-2.5 shadow-sm">
               {/* Media Header: Platform Level & Duration */}
               <div className="flex items-center justify-between">
                 {getLevelBadge(media.platform_level, media.platform_display)}
 
                 {media.duration_seconds ? (
-                  <span className="flex items-center gap-1 text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
-                    <Clock className="w-3 h-3 text-cyan-400" />
+                  <span className="flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 border border-slate-300">
+                    <Clock className="w-3 h-3 text-slate-500" />
                     {formatDuration(media.duration_seconds)}
                   </span>
                 ) : null}
               </div>
 
               {/* Video Preview: Thumbnail & Title */}
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 {media.thumbnail_url ? (
-                  <div className="relative w-28 h-18 rounded-lg overflow-hidden shrink-0 border border-slate-700 bg-slate-900 shadow">
+                  <div className="relative w-24 h-16 border border-slate-300 bg-slate-100 overflow-hidden shrink-0">
                     <img
                       src={media.thumbnail_url}
                       alt={media.title}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <Film className="w-4 h-4 text-white/80 drop-shadow" />
+                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                      <Film className="w-4 h-4 text-white drop-shadow" />
                     </div>
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 text-cyan-400">
-                    <Film className="w-6 h-6" />
+                  <div className="w-12 h-12 bg-slate-100 border border-slate-300 flex items-center justify-center shrink-0 text-slate-600">
+                    <Film className="w-5 h-5" />
                   </div>
                 )}
 
                 <div className="min-w-0 flex-1">
                   <h4
-                    className="text-xs font-bold text-slate-100 line-clamp-2 leading-relaxed"
+                    className="text-xs font-bold text-slate-800 line-clamp-2 leading-tight"
                     title={media.title}
                   >
                     {media.title}
                   </h4>
                   {media.uploader && (
-                    <p className="text-[11px] text-slate-400 mt-1 truncate">
+                    <p className="text-[11px] text-slate-600 mt-1 truncate">
                       Canal / Autor:{' '}
-                      <span className="text-cyan-300 font-medium">
+                      <span className="text-blue-800 font-semibold">
                         {media.uploader}
                       </span>
                     </p>
@@ -541,19 +534,17 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
               {/* Twitter / X Animated GIF Banner */}
               {media.is_animated_gif && (
-                <div className="p-3 rounded-xl bg-pink-950/40 border border-pink-800/60 flex items-start gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-pink-900/60 border border-pink-700/60 text-pink-300 shrink-0 mt-0.5">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs">
-                    <div className="font-bold text-pink-200 flex items-center gap-1.5">
+                <div className="p-2.5 bg-pink-50 border border-pink-300 flex items-start gap-2 text-xs">
+                  <Sparkles className="w-4 h-4 text-pink-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-pink-900 flex items-center gap-1.5">
                       <span>GIF Animado detectado</span>
-                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-pink-900/80 text-pink-200 border border-pink-700">
+                      <span className="text-[10px] font-mono uppercase px-1 py-0.2 bg-pink-200 text-pink-800 border border-pink-300">
                         Twitter / X
                       </span>
                     </div>
-                    <div className="text-slate-300 mt-0.5 leading-relaxed text-[11px]">
-                      Puedes descargarlo como una animación <strong>.gif</strong> real (con paleta de colores optimizada) o como un video <strong>.mp4</strong> en bucle continuo.
+                    <div className="text-slate-700 mt-0.5 text-[11px]">
+                      Puedes descargarlo como una animación <strong>.gif</strong> real optimizada o como video <strong>.mp4</strong> en bucle.
                     </div>
                   </div>
                 </div>
@@ -561,15 +552,15 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
               {/* Tab Selector if both Gallery and Video Formats exist */}
               {gallery.length > 0 && media.formats.length > 0 && (
-                <div className="flex items-center gap-2 border-b border-slate-800/90 pb-2.5">
+                <div className="flex items-center gap-1 border-b border-slate-300 pb-1.5">
                   <button
                     type="button"
                     onClick={() => setActiveTab('gallery')}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                      'flex items-center gap-1.5 px-3 py-1 text-xs font-semibold border transition-all cursor-pointer',
                       activeTab === 'gallery'
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950/40'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+                        ? 'bg-[#cce8ff] border-blue-500 text-blue-900 shadow-sm'
+                        : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
                     )}
                   >
                     <Images className="w-3.5 h-3.5" />
@@ -579,10 +570,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     type="button"
                     onClick={() => setActiveTab('video')}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                      'flex items-center gap-1.5 px-3 py-1 text-xs font-semibold border transition-all cursor-pointer',
                       activeTab === 'video'
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950/40'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
+                        ? 'bg-[#cce8ff] border-blue-500 text-blue-900 shadow-sm'
+                        : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
                     )}
                   >
                     <Film className="w-3.5 h-3.5" />
@@ -593,24 +584,24 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
               {/* GALLERY VIEW: Multiple images in Twitter, Reddit, etc. */}
               {isGalleryMode && gallery.length > 0 && (
-                <div className="space-y-3 pt-1">
+                <div className="space-y-2.5 pt-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Images className="w-3.5 h-3.5 text-cyan-400" />
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Images className="w-3.5 h-3.5 text-slate-600" />
                       <span>Imágenes encontradas ({gallery.length}):</span>
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={selectAllImages}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer border border-slate-700"
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-blue-800 border border-slate-400 cursor-pointer shadow-sm active:bg-slate-300"
                       >
                         Seleccionar todas
                       </button>
                       <button
                         type="button"
                         onClick={deselectAllImages}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer border border-slate-700"
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-400 cursor-pointer shadow-sm active:bg-slate-300"
                       >
                         Deseleccionar
                       </button>
@@ -618,7 +609,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   </div>
 
                   {/* Image Grid with Thumbnails and Checkboxes */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
                     {gallery.map((item, idx) => {
                       const isSelected = selectedImageIndices.has(idx);
                       return (
@@ -626,10 +617,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           key={idx}
                           onClick={() => toggleSelectImage(idx)}
                           className={cn(
-                            'relative group rounded-xl overflow-hidden border cursor-pointer transition-all aspect-video flex flex-col justify-between bg-slate-900',
+                            'relative group border cursor-pointer transition-all aspect-video flex flex-col justify-between bg-slate-100 overflow-hidden',
                             isSelected
-                              ? 'border-cyan-400 ring-2 ring-cyan-500/50 shadow-md shadow-cyan-950/40'
-                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700'
+                              ? 'border-blue-600 ring-2 ring-blue-500/40 shadow-sm'
+                              : 'border-slate-300 opacity-70 hover:opacity-100 hover:border-slate-400'
                           )}
                         >
                           <img
@@ -638,16 +629,16 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 pointer-events-none" />
 
                           {/* Checkbox badge top right */}
                           <div className="absolute top-1.5 right-1.5 pointer-events-none">
                             <div
                               className={cn(
-                                'w-5 h-5 rounded-md flex items-center justify-center border transition-all',
+                                'w-4 h-4 rounded-sm flex items-center justify-center border transition-all',
                                 isSelected
-                                  ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow'
-                                  : 'bg-black/60 border-slate-600 text-transparent'
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow'
+                                  : 'bg-white/80 border-slate-500 text-transparent'
                               )}
                             >
                               <CheckSquare className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -655,12 +646,12 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           </div>
 
                           {/* Bottom metadata */}
-                          <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-[10px] font-mono text-slate-200">
-                            <span className="font-bold bg-black/60 px-1.5 py-0.2 rounded border border-slate-700/60">
+                          <div className="absolute bottom-1 left-1.5 right-1.5 flex items-center justify-between text-[10px] font-mono text-white">
+                            <span className="font-bold bg-black/60 px-1 py-0.2 rounded">
                               #{idx + 1}
                             </span>
                             {item.width && item.height && (
-                              <span className="bg-black/60 px-1.5 py-0.2 rounded text-cyan-300 border border-slate-700/60">
+                              <span className="bg-black/60 px-1 py-0.2 rounded text-cyan-200">
                                 {item.width}x{item.height}
                               </span>
                             )}
@@ -670,11 +661,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     })}
                   </div>
 
-                  {/* Organization option: Subfolder vs Loose (only when post has multiple images) */}
+                  {/* Organization option: Subfolder vs Loose */}
                   {gallery.length > 1 && (
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+                    <div className="p-2.5 bg-slate-50 border border-slate-300 space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                        <FolderPlus className="w-3.5 h-3.5 text-slate-600" />
                         <span>¿Cómo guardar las imágenes?</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -682,19 +673,19 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           type="button"
                           onClick={() => setFolderOrganization('subfolder')}
                           className={cn(
-                            'p-2.5 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer',
+                            'p-2 border text-left flex items-start gap-2 transition-all cursor-pointer',
                             folderOrganization === 'subfolder'
-                              ? 'bg-cyan-500/15 border-cyan-400 text-slate-100 ring-1 ring-cyan-400/40'
-                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                              ? 'bg-[#cce8ff] border-blue-500 text-blue-950 font-medium'
+                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                           )}
                         >
-                          <FolderPlus className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <FolderPlus className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
                           <div>
-                            <div className="font-semibold text-slate-200">
+                            <div className="font-semibold text-slate-900">
                               Crear una subcarpeta (Recomendado)
                             </div>
-                            <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                              Crea una carpeta con el título de la publicación para contener todas las fotos
+                            <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                              Crea una carpeta con el título de la publicación para contener las fotos
                             </div>
                           </div>
                         </button>
@@ -702,19 +693,19 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           type="button"
                           onClick={() => setFolderOrganization('loose')}
                           className={cn(
-                            'p-2.5 rounded-xl border text-left flex items-start gap-2 transition-all cursor-pointer',
+                            'p-2 border text-left flex items-start gap-2 transition-all cursor-pointer',
                             folderOrganization === 'loose'
-                              ? 'bg-cyan-500/15 border-cyan-400 text-slate-100 ring-1 ring-cyan-400/40'
-                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                              ? 'bg-[#cce8ff] border-blue-500 text-blue-950 font-medium'
+                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                           )}
                         >
-                          <Folder className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                          <Folder className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
                           <div>
-                            <div className="font-semibold text-slate-200">
+                            <div className="font-semibold text-slate-900">
                               Guardar imágenes sueltas
                             </div>
-                            <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                              Descarga las fotos directamente en la carpeta de destino seleccionada
+                            <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
+                              Descarga las fotos directamente en la carpeta de destino
                             </div>
                           </div>
                         </button>
@@ -724,17 +715,17 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 </div>
               )}
 
-              {/* VIDEO FORMAT SELECTION: When not in gallery mode */}
+              {/* VIDEO FORMAT SELECTION */}
               {!isGalleryMode && (
-                <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <div className="space-y-1.5 pt-2 border-t border-slate-300">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
                     <span>Seleccionar Calidad y Formato:</span>
-                    <span className="text-[10px] text-cyan-400 font-mono">
+                    <span className="text-[11px] text-blue-700 font-mono font-semibold">
                       {media.formats.length} opciones disponibles
                     </span>
                   </label>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5">
                     {media.formats.map((fmt) => {
                       const isSelected = selectedFormatId === fmt.format_id;
                       return (
@@ -743,10 +734,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           key={fmt.format_id}
                           onClick={() => handleSelectFormat(fmt)}
                           className={cn(
-                            'p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between gap-1',
+                            'p-1.5 text-left border transition-all cursor-pointer flex flex-col justify-between gap-1',
                             isSelected
-                              ? 'bg-cyan-500/15 border-cyan-400 ring-1 ring-cyan-400/50 shadow-md shadow-cyan-500/20 text-slate-100'
-                              : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-800/40'
+                              ? 'bg-[#cce8ff] border-blue-500 text-blue-900 shadow-sm'
+                              : 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-800'
                           )}
                         >
                           <div className="flex items-center justify-between gap-1">
@@ -755,22 +746,22 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                             </span>
                             <span
                               className={cn(
-                                'text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold uppercase',
+                                'text-[9px] font-mono px-1 py-0.2 uppercase border font-semibold',
                                 fmt.is_audio_only
-                                  ? 'bg-pink-950 text-pink-300 border border-pink-800/60'
-                                  : 'bg-cyan-950 text-cyan-300 border border-cyan-800/60'
+                                  ? 'bg-pink-100 text-pink-800 border-pink-300'
+                                  : 'bg-slate-200 text-slate-800 border-slate-300'
                               )}
                             >
                               {fmt.ext}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                          <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono">
                             <span>
                               {fmt.resolution || (fmt.is_audio_only ? 'Audio' : 'Video')}
                             </span>
                             {fmt.filesize_approx && (
-                              <span className="text-slate-300 font-medium">
+                              <span className="font-semibold text-slate-800">
                                 ~{formatBytes(fmt.filesize_approx)}
                               </span>
                             )}
@@ -782,26 +773,25 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 </div>
               )}
 
-              {/* Notice if yt-dlp is missing (only relevant for video stream downloads) */}
+              {/* Notice if yt-dlp is missing */}
               {!isGalleryMode && extractorStatus && !extractorStatus.ytdlp_installed && (
-                <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 space-y-2">
-                  <div className="flex items-start gap-2 text-xs text-amber-200">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-2.5 bg-amber-50 border border-amber-300 space-y-1.5 text-xs text-amber-900">
+                  <div className="flex items-start gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <span>
-                      Se requiere el motor multimedia <strong>yt-dlp</strong> para
-                      procesar y ensamblar streams de audio/video.
+                      Se requiere el motor <strong>yt-dlp</strong> para ensamblar streams de audio/video.
                     </span>
                   </div>
 
                   {installError && (
-                    <div className="text-[11px] text-rose-300">
+                    <div className="text-[11px] text-red-600 font-semibold">
                       {installError}
                     </div>
                   )}
 
                   {installSuccess ? (
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                       ¡yt-dlp instalado y configurado correctamente!
                     </div>
                   ) : (
@@ -809,7 +799,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                       type="button"
                       onClick={handleInstallExtractor}
                       disabled={installingExtractor}
-                      className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm active:shadow-inner cursor-pointer disabled:opacity-50"
                     >
                       {installingExtractor ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -828,12 +818,12 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
               {/* Advisory if FFmpeg is not installed */}
               {!isGalleryMode && extractorStatus && extractorStatus.ytdlp_installed && !extractorStatus.ffmpeg_installed && (
-                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-start gap-2 text-[11px] text-slate-300">
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono text-[10px] font-semibold shrink-0 border border-amber-500/30">
+                <div className="p-2 bg-slate-50 border border-slate-300 flex items-start gap-1.5 text-[11px] text-slate-600">
+                  <span className="px-1 py-0.2 bg-amber-100 text-amber-800 font-mono text-[10px] font-semibold shrink-0 border border-amber-300">
                     FFmpeg
                   </span>
                   <span>
-                    No se detectó FFmpeg en el sistema. BundleRock usará el stream de mayor calidad directa sin remuxing. Para ensamblar pistas 1080p+ y audio MP3 sin pérdida, se recomienda contar con FFmpeg.
+                    No se detectó FFmpeg en el sistema. Se usará el stream de mayor calidad directa sin remuxing.
                   </span>
                 </div>
               )}
@@ -842,33 +832,33 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
           {/* STANDARD HTTP PROBE RESULT CARD (NON-MEDIA) */}
           {probeResult && !media && !probing && (
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Tamaño detectado:</span>
-                <span className="font-mono font-bold text-slate-100">
+            <div className="p-2.5 bg-white border border-slate-300 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Tamaño detectado:</span>
+                <span className="font-mono font-bold text-slate-900">
                   {formatBytes(probeResult.content_length)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Aceleración multihilo:</span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Aceleración multihilo:</span>
                 {probeResult.accept_ranges ? (
-                  <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/80">
-                    <ShieldCheck className="w-3 h-3" />
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 border border-emerald-300">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
                     Soportada (Accept-Ranges)
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[11px] font-medium text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800/80">
-                    <AlertTriangle className="w-3 h-3" />
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 border border-amber-300">
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
                     Descarga en hilo único
                   </span>
                 )}
               </div>
 
               {probeResult.content_type && (
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Tipo de contenido:</span>
-                  <span className="font-mono text-slate-300 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Tipo de contenido:</span>
+                  <span className="font-mono text-slate-700 text-[11px]">
                     {probeResult.content_type}
                   </span>
                 </div>
@@ -876,18 +866,18 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             </div>
           )}
 
-          {/* Connection Threads Selector (Available for direct downloads AND video streams) */}
-          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+          {/* Connection Threads Selector */}
+          <div className="p-2.5 bg-white border border-slate-300 space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-slate-600" />
                 <span>
                   {media && !isGalleryMode
-                    ? 'Hilos de Descarga / Fragmentos concurrentes'
-                    : 'Conexiones simultáneas (Hilos de descarga)'}
+                    ? 'Hilos de Descarga / Fragmentos concurrentes:'
+                    : 'Conexiones simultáneas (Hilos de descarga):'}
                 </span>
               </label>
-              <span className="text-xs font-mono text-cyan-300 font-bold">
+              <span className="text-xs font-mono text-blue-900 font-bold">
                 {connections} {connections === 1 ? 'hilo' : 'hilos'}
               </span>
             </div>
@@ -909,12 +899,12 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                         : undefined
                     }
                     className={cn(
-                      'py-1.5 px-2 rounded-lg text-xs font-mono font-medium border transition-all cursor-pointer',
+                      'py-1 px-2 text-xs font-mono font-semibold border transition-all cursor-pointer shadow-sm',
                       connections === num
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-sm shadow-cyan-500/20'
-                        : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200',
+                        ? 'bg-[#cce8ff] text-blue-900 border-blue-500 font-bold'
+                        : 'bg-slate-100 text-slate-700 border-slate-400 hover:bg-slate-200 active:bg-slate-300',
                       disabled &&
-                        'opacity-40 cursor-not-allowed hover:border-slate-800 hover:text-slate-400'
+                        'opacity-40 cursor-not-allowed hover:bg-slate-100 text-slate-400 border-slate-300'
                     )}
                   >
                     {num}x
@@ -922,9 +912,9 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 );
               })}
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 leading-tight">
               {media && !isGalleryMode
-                ? '✓ BundleRock acelera la descarga de videos por partes/fragmentos DASH/HLS concurrentemente con yt-dlp (--concurrent-fragments <N>).'
+                ? 'BundleRock acelera la descarga de fragmentos DASH/HLS concurrentemente con yt-dlp.'
                 : probeResult && !probeResult.accept_ranges
                 ? 'El servidor solo permite 1 conexión (sin soporte Accept-Ranges).'
                 : 'BundleRock divide dinámicamente la descarga en segmentos para maximizar el ancho de banda.'}
@@ -932,18 +922,18 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           </div>
 
           {/* File Name Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-300">
-              Nombre de archivo / Publicación
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-700">
+              Nombre de archivo / Publicación:
             </label>
             {isGalleryMode ? (
-              <p className="text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+              <p className="text-[11px] text-slate-600 bg-white p-2 border border-slate-300">
                 Las {selectedImageIndices.size} imágenes seleccionadas se guardarán numeradas como:{' '}
-                <code className="text-cyan-300 font-mono">
+                <code className="text-blue-900 font-mono font-semibold">
                   {(fileName || 'imagen').split('.')[0]}_1.jpg
                 </code>
                 ,{' '}
-                <code className="text-cyan-300 font-mono">
+                <code className="text-blue-900 font-mono font-semibold">
                   {(fileName || 'imagen').split('.')[0]}_2.jpg
                 </code>
                 ...
@@ -954,33 +944,31 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
                 placeholder="nombre_de_archivo.ext (opcional, se auto-detecta)"
-                className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full bg-white border border-slate-400 px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
               />
             )}
           </div>
 
           {/* Save Directory */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-300">
-              Carpeta de destino
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-slate-700">
+              Carpeta de destino:
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={savePath}
-                onChange={(e) => setSavePath(e.target.value)}
-                placeholder="Ruta de guardado (por defecto Descargas)"
-                className="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
-              />
-            </div>
+            <input
+              type="text"
+              value={savePath}
+              onChange={(e) => setSavePath(e.target.value)}
+              placeholder="Ruta de guardado (por defecto Descargas)"
+              className="w-full bg-white border border-slate-400 px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
+            />
           </div>
 
           {/* Buttons Footer */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+          <div className="pt-2 border-t border-slate-300 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 active:shadow-inner cursor-pointer"
             >
               Cancelar
             </button>
@@ -991,16 +979,16 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 starting ||
                 (isGalleryMode && selectedImageIndices.size === 0)
               }
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+              className="px-5 py-1.5 bg-[#1a365d] hover:bg-[#152e4d] disabled:opacity-50 text-white text-xs font-bold shadow-sm active:shadow-inner flex items-center gap-1.5 cursor-pointer"
             >
               {starting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isGalleryMode ? (
-                <Images className="w-4 h-4 stroke-[2.5]" />
+                <Images className="w-4 h-4" />
               ) : media ? (
-                <Film className="w-4 h-4 stroke-[2.5]" />
+                <Film className="w-4 h-4" />
               ) : (
-                <Download className="w-4 h-4 stroke-[2.5]" />
+                <Download className="w-4 h-4" />
               )}
               <span>
                 {isGalleryMode

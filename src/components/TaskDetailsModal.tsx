@@ -42,38 +42,32 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   const resolution = task.resolution;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl shadow-cyan-950/40 overflow-hidden flex flex-col max-h-[88vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
+      <div className="relative w-full max-w-2xl bg-slate-100 border border-slate-400 shadow-2xl text-slate-800 flex flex-col max-h-[88vh]">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-100 truncate max-w-md">
-                {task.file_name}
-              </h2>
-              <p className="text-xs text-slate-400">
-                Inspección técnica multihilo ({task.num_connections} hilos)
-              </p>
-            </div>
+        <div className="px-3 py-1.5 border-b border-slate-300 flex items-center justify-between bg-[#1a365d] text-white shrink-0">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-cyan-300" />
+            <h2 className="text-xs font-bold uppercase tracking-wide truncate max-w-md">
+              Propiedades / Segmentos: {task.file_name}
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-0.5 hover:bg-red-600 text-white transition-colors cursor-pointer"
+            title="Cerrar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar">
-          {/* Media Header Preview if media download or rich metadata present */}
+        <div className="p-4 space-y-3.5 overflow-y-auto text-xs">
+          {/* Media Header Preview */}
           {(task.is_media || thumbnail || resolution || duration) && (
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-purple-500/30 flex items-center gap-3.5">
+            <div className="p-2.5 bg-white border border-slate-300 flex items-center gap-3">
               {thumbnail && !imgError ? (
-                <div className="w-20 h-14 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0">
+                <div className="w-20 h-14 border border-slate-300 bg-slate-100 overflow-hidden shrink-0">
                   <img
                     src={thumbnail}
                     alt=""
@@ -83,42 +77,42 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                 </div>
               ) : null}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {task.media_platform && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/60">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.2 bg-purple-100 text-purple-800 border border-purple-300">
                       {task.media_platform}
                     </span>
                   )}
                   {(task.is_animated_gif || task.file_name.toLowerCase().endsWith('.gif')) && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-950/80 text-pink-300 border border-pink-700/60 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5 text-pink-400" />
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 bg-pink-100 text-pink-800 border border-pink-300 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-pink-600" />
                       GIF Animado
                     </span>
                   )}
                   {resolution && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-800/60 flex items-center gap-1">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.2 bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1">
                       {category === 'image' ? (
-                        <ImageIcon className="w-2.5 h-2.5 text-blue-400" />
+                        <ImageIcon className="w-2.5 h-2.5 text-blue-600" />
                       ) : (
-                        <Film className="w-2.5 h-2.5 text-blue-400" />
+                        <Film className="w-2.5 h-2.5 text-blue-600" />
                       )}
                       {formatResolutionLabel(resolution, category === 'image')}
                     </span>
                   )}
                   {duration != null && duration > 0 && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5 text-slate-400" />
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 text-slate-500" />
                       {formatDuration(duration)}
                     </span>
                   )}
                   {task.media_format && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-800 border border-slate-300">
                       Formato: {task.media_format}
                     </span>
                   )}
                 </div>
                 {task.stage_message && (
-                  <p className="text-xs text-amber-300 mt-1 font-medium animate-pulse">
+                  <p className="text-xs text-amber-700 mt-1 font-semibold">
                     {task.stage_message}
                   </p>
                 )}
@@ -127,10 +121,10 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
           )}
 
           {/* Main Visual Progress */}
-          <div className="space-y-2">
+          <div className="bg-white border border-slate-300 p-2.5 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-medium">Progreso Global:</span>
-              <span className="font-mono font-bold text-cyan-400 text-sm">
+              <span className="text-slate-600 font-semibold">Progreso de la Tarea:</span>
+              <span className="font-mono font-bold text-slate-900">
                 {task.progress_percentage.toFixed(2)}%
               </span>
             </div>
@@ -141,96 +135,85 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
               totalBytes={task.total_bytes}
               downloadedBytes={task.downloaded_bytes}
               speedBps={task.speed_bps}
-              size="lg"
+              size="md"
               showTooltips={true}
             />
           </div>
 
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="bg-slate-950/70 border border-slate-800 p-2.5 rounded-xl">
-              <div className="text-[11px] text-slate-400">Velocidad actual</div>
-              <div className="text-xs font-mono font-bold text-cyan-300 mt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="bg-white border border-slate-300 p-2">
+              <div className="text-[10px] text-slate-500 uppercase font-bold">Velocidad actual</div>
+              <div className="text-xs font-mono font-bold text-red-600 mt-0.5">
                 {formatSpeed(task.speed_bps)}
               </div>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 p-2.5 rounded-xl">
-              <div className="text-[11px] text-slate-400">Descargado</div>
-              <div className="text-xs font-mono font-bold text-slate-200 mt-1">
+            <div className="bg-white border border-slate-300 p-2">
+              <div className="text-[10px] text-slate-500 uppercase font-bold">Descargado</div>
+              <div className="text-xs font-mono font-bold text-slate-800 mt-0.5">
                 {formatBytes(task.downloaded_bytes)}
               </div>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 p-2.5 rounded-xl">
-              <div className="text-[11px] text-slate-400">Tamaño Total</div>
-              <div className="text-xs font-mono font-bold text-slate-200 mt-1">
+            <div className="bg-white border border-slate-300 p-2">
+              <div className="text-[10px] text-slate-500 uppercase font-bold">Tamaño Total</div>
+              <div className="text-xs font-mono font-bold text-slate-800 mt-0.5">
                 {formatBytes(task.total_bytes)}
               </div>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 p-2.5 rounded-xl">
-              <div className="text-[11px] text-slate-400">Estado</div>
-              <div className="text-xs font-bold text-cyan-400 mt-1 uppercase">
+            <div className="bg-white border border-slate-300 p-2">
+              <div className="text-[10px] text-slate-500 uppercase font-bold">Estado</div>
+              <div className="text-xs font-bold text-blue-900 mt-0.5 uppercase">
                 {task.status}
               </div>
             </div>
           </div>
 
           {/* Details Table */}
-          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
-            <div className="flex items-start justify-between gap-3 pb-1.5 border-b border-slate-800/80">
-              <span className="text-slate-400 shrink-0">URL:</span>
-              <span className="font-mono text-slate-200 truncate select-all text-right" title={task.url}>
+          <div className="bg-white border border-slate-300 p-2.5 space-y-1.5 text-xs">
+            <div className="flex items-start justify-between gap-2 pb-1 border-b border-slate-200">
+              <span className="text-slate-500 shrink-0 font-medium">URL:</span>
+              <span className="font-mono text-slate-800 truncate select-all text-right" title={task.url}>
                 {task.url}
               </span>
             </div>
-            <div className="flex items-start justify-between gap-3 pb-1.5 border-b border-slate-800/80">
-              <span className="text-slate-400 shrink-0">Ruta en disco:</span>
-              <span className="font-mono text-slate-200 truncate select-all text-right" title={task.file_path}>
+            <div className="flex items-start justify-between gap-2 pb-1 border-b border-slate-200">
+              <span className="text-slate-500 shrink-0 font-medium">Ruta en disco:</span>
+              <span className="font-mono text-slate-800 truncate select-all text-right" title={task.file_path}>
                 {task.file_path}
               </span>
             </div>
             {resolution && (
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
-                <span className="text-slate-400">
-                  {category === 'image' ? 'Dimensiones / Resolución:' : 'Resolución:'}
-                </span>
-                <span className="font-mono text-cyan-300 font-semibold">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Resolución:</span>
+                <span className="font-mono text-slate-800 font-semibold">
                   {formatResolutionLabel(resolution, category === 'image')}
                 </span>
               </div>
             )}
             {duration != null && duration > 0 && (
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
-                <span className="text-slate-400">Duración:</span>
-                <span className="font-mono text-slate-200">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Duración:</span>
+                <span className="font-mono text-slate-800">
                   {formatDuration(duration)}
                 </span>
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Acepta Rangos (Multisegmento):</span>
-              <span className="font-mono text-slate-200">
-                {task.accept_ranges ? 'Sí (Acelerado)' : 'No (Hilo único)'}
+              <span className="text-slate-500 font-medium">Acepta Rangos:</span>
+              <span className="font-mono text-slate-800 font-semibold">
+                {task.accept_ranges ? 'Sí (Acelerado multihilo)' : 'No (Hilo único)'}
               </span>
             </div>
-            {task.etag && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">ETag:</span>
-                <span className="font-mono text-slate-400 text-[11px]">{task.etag}</span>
-              </div>
-            )}
           </div>
 
           {/* Thread / Segment Detailed List */}
           {task.segments && task.segments.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                <span>Segmentos de Descarga en Vivo</span>
-                <span className="text-[11px] font-mono text-cyan-400">
-                  {task.segments.length} conexiones activas
-                </span>
-              </h3>
+            <div className="bg-white border border-slate-300 p-2.5">
+              <div className="text-xs font-bold text-slate-700 uppercase mb-2 flex items-center justify-between">
+                <span>Segmentos de Descarga ({task.segments.length} conexiones)</span>
+              </div>
 
-              <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                 {task.segments.map((seg) => {
                   const segPct =
                     seg.total_bytes > 0
@@ -242,52 +225,29 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                   return (
                     <div
                       key={seg.id}
-                      className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5 text-xs font-mono flex flex-col gap-1.5 hover:border-slate-700 transition-colors"
+                      className="bg-slate-50 border border-slate-300 p-1.5 text-xs font-mono flex items-center justify-between"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-cyan-300">
-                            Hilo #{seg.id + 1}
-                          </span>
-                          <span className="text-[10px] text-slate-500">
-                            Offset: {seg.start_byte.toLocaleString()} -{' '}
-                            {seg.end_byte === 18446744073709551615
-                              ? 'Fin'
-                              : seg.end_byte.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400 text-[11px]">
-                            {formatBytes(seg.downloaded_bytes)} /{' '}
-                            {seg.total_bytes > 0
-                              ? formatBytes(seg.total_bytes)
-                              : '--'}
-                          </span>
-                          <span
-                            className={cn(
-                              'text-[10px] uppercase px-1.5 py-0.5 rounded font-semibold',
-                              seg.status === 'completed'
-                                ? 'bg-emerald-950 text-emerald-400'
-                                : seg.status === 'downloading'
-                                ? 'bg-cyan-950 text-cyan-400 animate-pulse'
-                                : 'bg-slate-800 text-slate-400'
-                            )}
-                          >
-                            {segPct.toFixed(1)}%
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-blue-900">
+                          Hilo #{seg.id + 1}
+                        </span>
+                        <span className="text-[11px] text-slate-600">
+                          {formatBytes(seg.downloaded_bytes)} / {seg.total_bytes > 0 ? formatBytes(seg.total_bytes) : '--'}
+                        </span>
                       </div>
-
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          style={{ width: `${segPct}%` }}
-                          className={cn(
-                            'h-full transition-all duration-150',
-                            seg.status === 'completed'
-                              ? 'bg-emerald-400'
-                              : 'bg-gradient-to-r from-cyan-400 to-indigo-500'
-                          )}
-                        />
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 h-2 bg-slate-200 border border-slate-400 overflow-hidden">
+                          <div
+                            style={{ width: `${segPct}%` }}
+                            className={cn(
+                              'h-full',
+                              seg.status === 'completed' ? 'bg-emerald-600' : 'bg-blue-600'
+                            )}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-700 w-8 text-right">
+                          {segPct.toFixed(0)}%
+                        </span>
                       </div>
                     </div>
                   );
@@ -298,22 +258,22 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between shrink-0">
+        <div className="px-3 py-2 border-t border-slate-300 bg-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             {task.status === 'completed' && (
               <>
                 <button
                   onClick={() => onOpenFile(task.file_path)}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 flex items-center gap-1 cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-600" />
                   <span>Abrir Archivo</span>
                 </button>
                 <button
                   onClick={() => onOpenFolder(task.file_path)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 flex items-center gap-1 cursor-pointer"
                 >
-                  <FolderOpen className="w-3.5 h-3.5" />
+                  <FolderOpen className="w-3.5 h-3.5 text-slate-600" />
                   <span>Carpeta</span>
                 </button>
               </>
@@ -321,7 +281,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer"
+            className="px-4 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 cursor-pointer"
           >
             Cerrar
           </button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  DownloadCloud,
+  FolderDown,
   Plus,
 } from 'lucide-react';
 import { FileCategory, StatusFilter } from '../types/download';
@@ -24,37 +24,38 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     selectedCategory !== 'all' || selectedStatus !== 'all' || !!searchQuery;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none animate-in fade-in duration-300">
-      <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 shadow-xl shadow-cyan-950/20 text-slate-500">
-        <DownloadCloud className="w-8 h-8 text-cyan-400/80 animate-pulse" />
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none h-full min-h-[320px]">
+      {/* Retro Icon Container */}
+      <div className="w-14 h-14 bg-slate-100 border border-slate-400 flex items-center justify-center mb-3 shadow-[inset_1px_1px_0_#fff,1px_1px_2px_rgba(0,0,0,0.15)]">
+        <FolderDown className="w-7 h-7 text-slate-600" />
       </div>
 
-      <h3 className="text-base font-bold text-slate-200 mb-1">
+      <h3 className="text-sm font-bold text-slate-800 mb-1">
         {isFiltered
           ? 'No hay descargas que coincidan'
           : 'No hay descargas en la lista'}
       </h3>
 
-      <p className="text-xs text-slate-400 max-w-sm mb-5 leading-relaxed">
+      <p className="text-xs text-slate-600 max-w-sm mb-4 leading-relaxed">
         {isFiltered
           ? 'Prueba modificando tus términos de búsqueda o cambiando el filtro de categoría y estado.'
           : 'Pega un enlace HTTP/HTTPS para aprovechar la aceleración por conexiones dinámicas multisegmento.'}
       </p>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {isFiltered && (
           <button
             onClick={onResetFilters}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-700 text-xs font-semibold shadow-sm active:bg-slate-300 active:shadow-inner cursor-pointer"
           >
             Limpiar filtros
           </button>
         )}
         <button
           onClick={onOpenNewDownload}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 flex items-center gap-2 transition-all cursor-pointer"
+          className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 active:shadow-inner flex items-center gap-1.5 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
           <span>Agregar descarga</span>
         </button>
       </div>

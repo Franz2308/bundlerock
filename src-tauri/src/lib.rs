@@ -20,6 +20,12 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(DownloadManager::new())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let _ = window.destroy();
+                std::process::exit(0);
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
             probe_url,
@@ -35,7 +41,11 @@ pub fn run() {
             list_tasks,
             get_default_directory,
             check_extractor_status,
-            install_extractor
+            install_extractor,
+            minimize_window,
+            toggle_maximize_window,
+            is_window_maximized,
+            close_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

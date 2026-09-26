@@ -23,7 +23,8 @@ import {
   onDownloadProgress,
   onDownloadFinished,
 } from './services/downloadApi';
-import { getFileCategory } from './utils/formatters';
+import { TitleBar } from './components/TitleBar';
+import { getFileCategory, formatSpeed } from './utils/formatters';
 import './App.css';
 
 export function App() {
@@ -235,12 +236,6 @@ export function App() {
     return tasks.filter((t) => t.status === 'downloading').length;
   }, [tasks]);
 
-  const totalCompletedSize = useMemo(() => {
-    return tasks
-      .filter((t) => t.status === 'completed')
-      .reduce((sum, t) => sum + (t.downloaded_bytes || 0), 0);
-  }, [tasks]);
-
   // Download Actions
   const handleStartDownload = async (params: {
     url: string;
@@ -373,94 +368,108 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 select-none">
-      {/* Left Sidebar with Category & Status Filters */}
-      <Sidebar
-        selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
-        selectedStatus={selectedStatus}
-        onSelectStatus={setSelectedStatus}
-        categoryCounts={categoryCounts}
-        statusCounts={statusCounts}
-        totalSpeedBps={totalSpeedBps}
-        totalActiveDownloads={totalActiveDownloads}
-        totalCompletedSize={totalCompletedSize}
-        onOpenNewDownload={() => setIsNewDownloadOpen(true)}
-      />
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 text-slate-800 font-sans text-sm select-none">
+      {/* Unified Custom Title Bar & Top Header (integrated Discord-like style) */}
+      <TitleBar />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-950/90">
-        {/* Top Header Toolbar */}
-        <Toolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar */}
+        <Sidebar
           selectedCategory={selectedCategory}
           selectedStatus={selectedStatus}
-          selectedTask={selectedTask}
-          onClearSelection={() => setSelectedTaskId(null)}
-          totalTasksCount={tasks.length}
-          activeDownloadsCount={totalActiveDownloads}
-          pausedDownloadsCount={statusCounts.paused}
-          completedDownloadsCount={statusCounts.completed}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onSelectCategory={setSelectedCategory}
+          onSelectStatus={setSelectedStatus}
+          categoryCounts={categoryCounts}
+          statusCounts={statusCounts}
           onOpenNewDownload={() => setIsNewDownloadOpen(true)}
-          onPause={handleToolbarPause}
-          onResume={handleToolbarResume}
-          onCancelOrDelete={handleToolbarCancelOrDelete}
-          onClearCompleted={handleClearCompleted}
         />
 
-        {/* Downloads Scrollable View */}
-        <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-          {filteredTasks.length === 0 ? (
-            <EmptyState
-              selectedCategory={selectedCategory}
-              selectedStatus={selectedStatus}
-              searchQuery={searchQuery}
-              onOpenNewDownload={() => setIsNewDownloadOpen(true)}
-              onResetFilters={() => {
-                setSelectedCategory('all');
-                setSelectedStatus('all');
-                setSearchQuery('');
-              }}
-            />
-          ) : (
-            <div
-              className={
-                viewMode === 'detailed'
-                  ? 'space-y-3.5 max-w-5xl mx-auto'
-                  : 'space-y-2 max-w-5xl mx-auto'
-              }
-            >
-              {filteredTasks.map((task) => (
-                <DownloadItem
-                  key={task.id}
-                  task={task}
-                  viewMode={viewMode}
-                  isSelected={task.id === selectedTaskId}
-                  onSelect={(id) => setSelectedTaskId((prev) => (prev === id ? null : id))}
-                  onPause={handlePause}
-                  onResume={handleResume}
-                  onCancel={handleCancel}
-                  onOpenFile={openFile}
-                  onOpenFolder={openContainingFolder}
-                  onInspect={setInspectingTask}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+          <Toolbar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            
+            
+            selectedTask={selectedTask}
+            onClearSelection={() => setSelectedTaskId(null)}
+            totalTasksCount={tasks.length}
+            activeDownloadsCount={totalActiveDownloads}
+            pausedDownloadsCount={statusCounts.paused}
+            completedDownloadsCount={statusCounts.completed}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onOpenNewDownload={() => setIsNewDownloadOpen(true)}
+            onPause={handleToolbarPause}
+            onResume={handleToolbarResume}
+            onCancelOrDelete={handleToolbarCancelOrDelete}
+            onClearCompleted={handleClearCompleted}
+          />
+
+          <main className="flex-1 overflow-y-auto p-2 bg-white m-1 border border-slate-300 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] custom-scrollbar">
+            {filteredTasks.length === 0 ? (
+              <EmptyState selectedCategory={selectedCategory} selectedStatus={selectedStatus}
+                
+                
+                searchQuery={searchQuery}
+                onOpenNewDownload={() => setIsNewDownloadOpen(true)}
+                onResetFilters={() => {
+                  setSelectedCategory('all');
+                  setSelectedStatus('all');
+                  setSearchQuery('');
+                }}
+              />
+            ) : (
+              <div className="w-full h-full">
+                {viewMode === 'detailed' && (
+                  <div className="grid grid-cols-12 gap-2 bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1">
+                    <div className="col-span-1 text-center">#</div>
+                    <div className="col-span-5">Nombre de Archivo / Origen</div>
+                    <div className="col-span-2">Tamaño / Progreso</div>
+                    <div className="col-span-2 text-center">Velocidad / ETA</div>
+                    <div className="col-span-1 text-center">Estado</div>
+                    <div className="col-span-1 text-center">Acción</div>
+                  </div>
+                )}
+                <div className="space-y-0.5">
+                  {filteredTasks.map((task, index) => (
+                    <DownloadItem
+                      key={task.id}
+                      task={task}
+                      viewMode={viewMode}
+                      index={index + 1}
+                      isSelected={task.id === selectedTaskId}
+                      onSelect={(id) => setSelectedTaskId((prev) => (prev === id ? null : id))}
+                      onPause={handlePause}
+                      onResume={handleResume}
+                      onCancel={handleCancel}
+                      onOpenFile={openFile}
+                      onOpenFolder={openContainingFolder}
+                      onInspect={setInspectingTask}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+          
+          {/* Status Bar */}
+          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center px-3 text-[11px] text-slate-700 shrink-0">
+            <span>
+              Velocidad Global:{' '}
+              <b className="text-red-600 font-mono font-bold">
+                {formatSpeed(totalSpeedBps)}
+              </b>
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* New Download Modal */}
       <NewDownloadModal
         isOpen={isNewDownloadOpen}
         onClose={() => setIsNewDownloadOpen(false)}
         onStartDownload={handleStartDownload}
       />
-
-      {/* Task Details / Segment Inspector Modal */}
       <TaskDetailsModal
         task={inspectingTask}
         onClose={() => setInspectingTask(null)}

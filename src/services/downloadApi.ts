@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { openPath, revealItemInDir } from '@tauri-apps/plugin-opener';
 import {
   DownloadProgressPayload,
@@ -121,3 +122,44 @@ export function onDownloadFinished(
     callback(event.payload);
   });
 }
+
+export async function minimizeWindow(): Promise<void> {
+  try {
+    await invoke('minimize_window');
+  } catch (err) {
+    console.warn('Rust minimize_window failed, falling back to window API:', err);
+    await getCurrentWindow().minimize();
+  }
+}
+
+export async function toggleMaximizeWindow(): Promise<boolean> {
+  try {
+    return await invoke<boolean>('toggle_maximize_window');
+  } catch (err) {
+    console.warn('Rust toggle_maximize_window failed, falling back to window API:', err);
+    await getCurrentWindow().toggleMaximize();
+    return await getCurrentWindow().isMaximized();
+  }
+}
+
+export async function isWindowMaximized(): Promise<boolean> {
+  try {
+    return await invoke<boolean>('is_window_maximized');
+  } catch {
+    return await getCurrentWindow().isMaximized();
+  }
+}
+
+export async function closeWindow(): Promise<void> {
+  try {
+    await invoke('close_window');
+  } catch (err) {
+    console.warn('Rust close_window failed, falling back to window API:', err);
+    try {
+      await getCurrentWindow().destroy();
+    } catch {
+      await getCurrentWindow().close();
+    }
+  }
+}
+
