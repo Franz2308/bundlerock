@@ -163,3 +163,18 @@ export async function closeWindow(): Promise<void> {
   }
 }
 
+export async function readClipboardText(): Promise<string> {
+  try {
+    const text = await invoke<string>('get_clipboard_text');
+    return text || '';
+  } catch (err) {
+    console.warn('Rust get_clipboard_text failed, trying plugin API:', err);
+    try {
+      const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
+      return (await readText()) || '';
+    } catch {
+      return '';
+    }
+  }
+}
+

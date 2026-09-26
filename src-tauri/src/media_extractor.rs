@@ -371,6 +371,51 @@ pub async fn install_ytdlp(_client: &reqwest::Client) -> Result<String, String> 
     std::fs::rename(&tmp_file, &target_file)
         .map_err(|e| format!("Error finalizando instalación de yt-dlp: {e}"))?;
 
+    // Download FFmpeg
+    #[cfg(windows)]
+    let (ff_url, ff_filename) = (
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/win32-x64",
+        "ffmpeg.exe",
+    );
+    #[cfg(target_os = "macos")]
+    let (ff_url, ff_filename) = (
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/darwin-x64",
+        "ffmpeg",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos")))]
+    let (ff_url, ff_filename) = (
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/linux-x64",
+        "ffmpeg",
+    );
+
+    let ff_target_file = bin_dir.join(ff_filename);
+    let ff_tmp_file = bin_dir.join(format!("{ff_filename}.tmp"));
+
+    if let Ok(ff_response) = download_client
+        .get(ff_url)
+        .header("User-Agent", "BundleRock/0.1.0 (Downloader)")
+        .send()
+        .await
+    {
+        if ff_response.status().is_success() {
+            if let Ok(ff_bytes) = ff_response.bytes().await {
+                if std::fs::write(&ff_tmp_file, ff_bytes).is_ok() {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if let Ok(meta) = std::fs::metadata(&ff_tmp_file) {
+                            let mut perms = meta.permissions();
+                            perms.set_mode(0o755);
+                            let _ = std::fs::set_permissions(&ff_tmp_file, perms);
+                        }
+                    }
+                    let _ = std::fs::remove_file(&ff_target_file);
+                    let _ = std::fs::rename(&ff_tmp_file, &ff_target_file);
+                }
+            }
+        }
+    }
+
     Ok(target_file.to_string_lossy().to_string())
 }
 
@@ -1455,6 +1500,7 @@ pub async fn download_media_stream(
     app_handle: Option<AppHandle>,
     mut cancel_rx: watch::Receiver<bool>,
     tasks_map: Arc<RwLock<HashMap<String, DownloadTask>>>,
+    tasks_file: PathBuf,
 ) -> Result<(), String> {
     let task_id = task.id.clone();
     let app_clone = app_handle.clone();
@@ -1847,6 +1893,7 @@ pub async fn download_media_stream(
         let mut tasks = tasks_map_clone.write().await;
         if tasks.contains_key(&task_id) {
             tasks.insert(task_id.clone(), task.clone());
+            crate::manager::DownloadManager::save_tasks_map(&*tasks, &tasks_file);
             if let Some(ref app) = app_clone {
                 let mut payload = DownloadProgressPayload::from(&task);
                 payload.stage_message = task.stage_message.clone();
@@ -1868,6 +1915,7 @@ pub async fn download_media_stream(
         let mut tasks = tasks_map_clone.write().await;
         if tasks.contains_key(&task_id) {
             tasks.insert(task_id, task.clone());
+            crate::manager::DownloadManager::save_tasks_map(&*tasks, &tasks_file);
             if let Some(ref app) = app_clone {
                 let mut payload = DownloadProgressPayload::from(&task);
                 payload.error_message = Some(err_detail.clone());

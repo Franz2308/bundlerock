@@ -8,6 +8,7 @@ pub mod storage;
 
 use commands::*;
 use manager::DownloadManager;
+use tauri::Manager;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -19,7 +20,11 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(DownloadManager::new())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .setup(|app| {
+            app.manage(DownloadManager::new(app.handle().clone()));
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 let _ = window.destroy();
@@ -45,7 +50,8 @@ pub fn run() {
             minimize_window,
             toggle_maximize_window,
             is_window_maximized,
-            close_window
+            close_window,
+            get_clipboard_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

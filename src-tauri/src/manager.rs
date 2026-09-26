@@ -30,19 +30,55 @@ pub struct DownloadManager {
     tasks: Arc<RwLock<HashMap<String, DownloadTask>>>,
     controllers: Arc<Mutex<HashMap<String, ActiveController>>>,
     client: reqwest::Client,
+    tasks_file: PathBuf,
 }
 
 impl DownloadManager {
-    pub fn new() -> Self {
+    pub fn save_tasks_map(tasks: &HashMap<String, DownloadTask>, path: &PathBuf) {
+        let tasks_vec: Vec<&crate::models::DownloadTask> = tasks.values().collect();
+        if let Ok(json) = serde_json::to_string(&tasks_vec) {
+            let _ = std::fs::write(path, json);
+        }
+    }
+
+    pub async fn save_tasks(&self) {
+        let tasks = self.tasks.read().await;
+        Self::save_tasks_map(&*tasks, &self.tasks_file);
+    }
+
+    pub fn load_tasks(path: &PathBuf) -> HashMap<String, DownloadTask> {
+        if let Ok(json) = std::fs::read_to_string(path) {
+            if let Ok(tasks_vec) = serde_json::from_str::<Vec<DownloadTask>>(&json) {
+                let mut map = HashMap::new();
+                for mut t in tasks_vec {
+                    if t.status == DownloadStatus::Downloading {
+                        t.status = DownloadStatus::Paused;
+                        t.speed_bps = 0;
+                    }
+                    map.insert(t.id.clone(), t);
+                }
+                return map;
+            }
+        }
+        HashMap::new()
+    }
+
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
+        use tauri::Manager;
+        let data_dir = app_handle.path().app_local_data_dir().unwrap_or_else(|_| PathBuf::from("tasks_data"));
+        let _ = std::fs::create_dir_all(&data_dir);
+        let tasks_file = data_dir.join("tasks.json");
+
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
             .unwrap_or_default();
 
         Self {
-            tasks: Arc::new(RwLock::new(HashMap::new())),
+            tasks: Arc::new(RwLock::new(Self::load_tasks(&tasks_file))),
             controllers: Arc::new(Mutex::new(HashMap::new())),
             client,
+            tasks_file,
         }
     }
 
@@ -279,6 +315,7 @@ impl DownloadManager {
 
             let task_for_stream = task.clone();
             let tasks_arc = self.tasks.clone();
+            let tasks_file_clone = self.tasks_file.clone();
             tokio::spawn(async move {
                 let _ = download_media_stream(
                     task_for_stream,
@@ -286,10 +323,12 @@ impl DownloadManager {
                     app_handle,
                     cancel_rx,
                     tasks_arc,
+                    tasks_file_clone,
                 )
                 .await;
             });
 
+            self.save_tasks().await;
             return Ok(task);
         }
 
@@ -317,6 +356,7 @@ impl DownloadManager {
 
             let mut tasks = self.tasks.write().await;
             tasks.insert(task_id.clone(), task.clone());
+            Self::save_tasks_map(&*tasks, &self.tasks_file);
             return Ok(task);
         }
 
@@ -330,6 +370,7 @@ impl DownloadManager {
         self.spawn_download_supervisor(task.clone(), app_handle, true)
             .await?;
 
+        self.save_tasks().await;
         Ok(task)
     }
 
@@ -341,13 +382,19 @@ impl DownloadManager {
         }
 
         let mut tasks = self.tasks.write().await;
+        let mut mutated = false;
         if let Some(task) = tasks.get_mut(id) {
             if task.status == DownloadStatus::Downloading {
                 task.status = DownloadStatus::Paused;
                 task.speed_bps = 0;
                 task.updated_at = now_millis();
-                return Ok(());
+                mutated = true;
             }
+        }
+        
+        if mutated {
+            Self::save_tasks_map(&*tasks, &self.tasks_file);
+            return Ok(());
         }
 
         Err(format!("Task {id} is not downloading or does not exist"))
@@ -409,6 +456,7 @@ impl DownloadManager {
             let task_for_stream = task.clone();
             let tasks_arc = self.tasks.clone();
             let fmt = task.media_format.clone();
+            let tasks_file_clone = self.tasks_file.clone();
             tokio::spawn(async move {
                 let _ = download_media_stream(
                     task_for_stream,
@@ -416,6 +464,7 @@ impl DownloadManager {
                     app_handle,
                     cancel_rx,
                     tasks_arc,
+                    tasks_file_clone,
                 )
                 .await;
             });
@@ -424,6 +473,7 @@ impl DownloadManager {
         }
 
         self.spawn_download_supervisor(task, app_handle, false).await?;
+        self.save_tasks().await;
         Ok(())
     }
 
@@ -439,13 +489,17 @@ impl DownloadManager {
 
         let file_path = {
             let mut tasks = self.tasks.write().await;
-            let task = tasks
-                .get_mut(id)
-                .ok_or_else(|| format!("Task {id} not found"))?;
-            task.status = DownloadStatus::Cancelled;
-            task.speed_bps = 0;
-            task.updated_at = now_millis();
-            PathBuf::from(&task.file_path)
+            let path = {
+                let task = tasks
+                    .get_mut(id)
+                    .ok_or_else(|| format!("Task {id} not found"))?;
+                task.status = DownloadStatus::Cancelled;
+                task.speed_bps = 0;
+                task.updated_at = now_millis();
+                PathBuf::from(&task.file_path)
+            };
+            Self::save_tasks_map(&*tasks, &self.tasks_file);
+            path
         };
 
         if delete_file {
@@ -483,7 +537,9 @@ impl DownloadManager {
         // Remove task from memory
         let removed_task = {
             let mut tasks = self.tasks.write().await;
-            tasks.remove(id)
+            let rm = tasks.remove(id);
+            Self::save_tasks_map(&*tasks, &self.tasks_file);
+            rm
         };
 
         let task = removed_task.ok_or_else(|| format!("Task {id} not found"))?;
@@ -523,7 +579,9 @@ impl DownloadManager {
         // Drain all tasks from memory
         let tasks_to_clear: Vec<DownloadTask> = {
             let mut tasks = self.tasks.write().await;
-            tasks.drain().map(|(_, v)| v).collect()
+            let drained: Vec<_> = tasks.drain().map(|(_, v)| v).collect();
+            Self::save_tasks_map(&*tasks, &self.tasks_file);
+            drained
         };
 
         if delete_file {
@@ -651,6 +709,7 @@ impl DownloadManager {
         let tasks_map = self.tasks.clone();
         let controllers_map = self.controllers.clone();
         let task_id = task.id.clone();
+        let tasks_file_clone = self.tasks_file.clone();
 
         // Spawn supervisor loop
         tokio::spawn(async move {
@@ -780,6 +839,7 @@ impl DownloadManager {
             // Update task in map
             {
                 let mut tasks = tasks_map.write().await;
+                let mut mutated = false;
                 if let Some(stored) = tasks.get_mut(&task_id) {
                     // Do not overwrite if a newer download session has started
                     if stored.status == DownloadStatus::Downloading
@@ -787,7 +847,11 @@ impl DownloadManager {
                         || task.status == DownloadStatus::Failed
                     {
                         *stored = task.clone();
+                        mutated = true;
                     }
+                }
+                if mutated {
+                    Self::save_tasks_map(&*tasks, &tasks_file_clone);
                 }
             }
         });
@@ -796,11 +860,6 @@ impl DownloadManager {
     }
 }
 
-impl Default for DownloadManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 /// Resolves a non-colliding file path by appending `(1)`, `(2)`, etc. if file already exists.
 pub fn resolve_unique_file_path(target_path: PathBuf) -> PathBuf {

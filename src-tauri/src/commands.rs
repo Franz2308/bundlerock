@@ -1,6 +1,7 @@
 use crate::manager::DownloadManager;
 use crate::models::{DownloadTask, ExtractorStatus, ProbeResult};
 use tauri::{AppHandle, State, Window};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 
 /// Probes a download URL to detect file size, range support, ETag, and file name (or multimedia streams).
 #[tauri::command]
@@ -186,5 +187,11 @@ pub fn close_window(window: Window, app: AppHandle) -> Result<(), String> {
     let _ = window.destroy();
     app.exit(0);
     std::process::exit(0);
+}
+
+/// Reads text from system clipboard natively without permissions prompts.
+#[tauri::command]
+pub fn get_clipboard_text(app: AppHandle) -> Result<String, String> {
+    app.clipboard().read_text().map_err(|e| e.to_string())
 }
 

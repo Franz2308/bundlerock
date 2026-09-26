@@ -25,6 +25,7 @@ import {
   getDefaultDirectory,
   checkExtractorStatus,
   installExtractor,
+  readClipboardText,
 } from '../services/downloadApi';
 import { cn } from '../utils/cn';
 
@@ -111,14 +112,14 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     // Check clipboard for valid URL
     const checkClipboard = async () => {
       try {
-        const text = await navigator.clipboard.readText();
-        const trimmed = text.trim();
+        const text = await readClipboardText();
+        const trimmed = (text || '').trim();
         if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
           setUrl(trimmed);
           handleProbe(trimmed);
         }
-      } catch {
-        // Clipboard read permission might be denied or unsupported; ignore quietly
+      } catch (e) {
+        console.warn('Clipboard read error:', e);
       }
     };
 
@@ -233,14 +234,14 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
   const handlePaste = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      const trimmed = text.trim();
+      const text = await readClipboardText();
+      const trimmed = (text || '').trim();
       if (trimmed) {
         setUrl(trimmed);
         handleProbe(trimmed);
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('Paste failed:', e);
     }
   };
 
