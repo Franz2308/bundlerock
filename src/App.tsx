@@ -29,6 +29,8 @@ import {
   installExtractor,
 } from './services/downloadApi';
 import { TitleBar } from './components/TitleBar';
+import { SettingsModal } from './components/SettingsModal';
+import { AppSettings, loadStoredSettings, saveStoredSettings } from './types/settings';
 import { getFileCategory, formatSpeed } from './utils/formatters';
 import './App.css';
 
@@ -42,6 +44,40 @@ export function App() {
   const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed');
   const [isNewDownloadOpen, setIsNewDownloadOpen] = useState(false);
   const [inspectingTask, setInspectingTask] = useState<DownloadTask | null>(null);
+
+  // Application Settings & Dark Mode state
+  const [settings, setSettings] = useState<AppSettings>(loadStoredSettings);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [extractorStatus, setExtractorStatus] = useState<{ ytdlp_installed: boolean; ffmpeg_installed: boolean }>({
+    ytdlp_installed: false,
+    ffmpeg_installed: false,
+  });
+
+  // Apply dark class to document element on theme change
+  useEffect(() => {
+    if (settings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.theme]);
+
+  // Keyboard shortcut Ctrl+, to open Settings
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setIsSettingsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSaveSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+    saveStoredSettings(newSettings);
+  };
 
   const toggleGroupExpand = (groupId: string) => {
     setExpandedGroupIds((prev) => {
@@ -58,14 +94,17 @@ export function App() {
   const [isInstallingExtractors, setIsInstallingExtractors] = useState(false);
   const [extractorInstallError, setExtractorInstallError] = useState<string | null>(null);
 
-  // Auto-install extractors silently on mount
+  // Auto-install extractors silently on mount and record status
   useEffect(() => {
     const initExtractors = async () => {
       try {
         const status = await checkExtractorStatus();
+        setExtractorStatus(status);
         if (!status.ytdlp_installed || !status.ffmpeg_installed) {
           setIsInstallingExtractors(true);
           await installExtractor();
+          const refreshed = await checkExtractorStatus();
+          setExtractorStatus(refreshed);
         }
       } catch (err) {
         setExtractorInstallError(String(err));
@@ -555,7 +594,7 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 text-slate-800 font-sans text-sm select-none">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 dark:bg-[#0c1017] text-slate-800 dark:text-slate-200 font-sans text-sm select-none">
       {/* Unified Custom Title Bar & Top Header (integrated Discord-like style) */}
       <TitleBar />
 
@@ -572,7 +611,7 @@ export function App() {
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100 dark:bg-[#0c1017]">
           <Toolbar
             selectedTask={toolbarSelectedTask}
             onClearSelection={() => setSelectedTaskId(null)}
@@ -583,13 +622,14 @@ export function App() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onOpenNewDownload={() => setIsNewDownloadOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
             onPause={handleToolbarPause}
             onResume={handleToolbarResume}
             onCancelOrDelete={handleToolbarCancelOrDelete}
             onClearCompleted={handleClearCompleted}
           />
 
-          <main className="flex-1 overflow-auto p-2 bg-white m-1 border border-slate-300 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] custom-scrollbar">
+          <main className="flex-1 overflow-auto p-2 bg-white dark:bg-[#101722] m-1 border border-slate-300 dark:border-[#202b3d] shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] custom-scrollbar">
             {filteredTasks.length === 0 ? (
               <EmptyState selectedCategory={selectedCategory} selectedStatus={selectedStatus}
                 searchQuery={searchQuery}
@@ -602,7 +642,7 @@ export function App() {
               />
             ) : viewMode === 'detailed' ? (
               <div className="w-full h-full min-w-[690px]">
-                <div className="download-grid bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1 select-none">
+                <div className="download-grid bg-slate-200 dark:bg-[#161f2e] border-b border-slate-300 dark:border-[#202b3d] p-1 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 z-10 mb-1 select-none">
                   <div className="text-center font-bold">#</div>
                   <div className="min-w-0">Nombre de Archivo / Origen</div>
                   <div className="min-w-0">Tamaño / Progreso</div>
@@ -617,6 +657,7 @@ export function App() {
                       group={group}
                       groupIndex={index + 1}
                       viewMode={viewMode}
+                      nerdStats={settings.nerdStats}
                       isExpanded={expandedGroupIds.has(group.id)}
                       onToggleExpand={toggleGroupExpand}
                       selectedId={selectedTaskId}
@@ -638,6 +679,7 @@ export function App() {
                   <DownloadCard
                     key={group.id}
                     group={group}
+                    nerdStats={settings.nerdStats}
                     isSelected={selectedTaskId === group.id || group.tasks.some((t) => t.id === selectedTaskId)}
                     onSelect={(id) => setSelectedTaskId((prev) => (prev === id ? null : id))}
                     onPauseTask={handlePause}
@@ -653,21 +695,21 @@ export function App() {
           </main>
           
           {/* Status Bar */}
-          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center justify-between px-3 text-[11px] text-slate-700 shrink-0 gap-2 min-w-0">
+          <div className="h-6 bg-slate-200 dark:bg-[#121824] border-t border-slate-300 dark:border-[#202b3d] flex items-center justify-between px-3 text-[11px] text-slate-700 dark:text-slate-300 shrink-0 gap-2 min-w-0">
             <span className="shrink-0">
               Velocidad Global:{' '}
-              <b className="text-red-600 font-mono font-bold">
+              <b className="text-red-600 dark:text-red-400 font-mono font-bold">
                 {formatSpeed(totalSpeedBps)}
               </b>
             </span>
             {isInstallingExtractors && (
-              <span className="flex items-center gap-1.5 text-blue-700 font-medium truncate min-w-0">
+              <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium truncate min-w-0">
                 <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                 <span className="truncate">Descargando motor multimedia y dependencias... (1ra vez)</span>
               </span>
             )}
             {extractorInstallError && (
-              <span className="flex items-center gap-1.5 text-red-600 font-medium truncate min-w-0" title={extractorInstallError}>
+              <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium truncate min-w-0" title={extractorInstallError}>
                 <AlertTriangle className="w-3 h-3 shrink-0" />
                 <span className="truncate">Error descargando motor multimedia</span>
               </span>
@@ -679,6 +721,7 @@ export function App() {
       <NewDownloadModal
         isOpen={isNewDownloadOpen}
         onClose={() => setIsNewDownloadOpen(false)}
+        defaultConnections={settings.defaultConnections}
         onStartDownload={handleStartDownload}
       />
       <TaskDetailsModal
@@ -686,6 +729,28 @@ export function App() {
         onClose={() => setInspectingTask(null)}
         onOpenFile={openFile}
         onOpenFolder={openContainingFolder}
+        nerdStats={settings.nerdStats}
+      />
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSaveSettings={handleSaveSettings}
+        ytdlpInstalled={extractorStatus.ytdlp_installed}
+        ffmpegInstalled={extractorStatus.ffmpeg_installed}
+        isInstallingDeps={isInstallingExtractors}
+        onInstallDependencies={async () => {
+          setIsInstallingExtractors(true);
+          try {
+            await installExtractor();
+            const status = await checkExtractorStatus();
+            setExtractorStatus(status);
+          } catch (err) {
+            setExtractorInstallError(String(err));
+          } finally {
+            setIsInstallingExtractors(false);
+          }
+        }}
       />
     </div>
   );
