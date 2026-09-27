@@ -318,7 +318,17 @@ pub async fn install_ytdlp(_client: &reqwest::Client) -> Result<String, String> 
         "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos",
         "yt-dlp",
     );
-    #[cfg(all(not(windows), not(target_os = "macos")))]
+    #[cfg(all(not(windows), not(target_os = "macos"), target_arch = "x86_64"))]
+    let (url, filename) = (
+        "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux",
+        "yt-dlp",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos"), target_arch = "aarch64"))]
+    let (url, filename) = (
+        "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64",
+        "yt-dlp",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos"), not(target_arch = "x86_64"), not(target_arch = "aarch64")))]
     let (url, filename) = (
         "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp",
         "yt-dlp",
@@ -328,91 +338,167 @@ pub async fn install_ytdlp(_client: &reqwest::Client) -> Result<String, String> 
     let target_file = bin_dir.join(filename);
     let tmp_file = bin_dir.join(format!("{filename}.tmp"));
 
-    // Dedicated client with extended timeout for large ~40MB binary download
+    // Dedicated client with extended timeout for large binary download
     let download_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(300))
         .build()
         .unwrap_or_default();
 
-    let response = download_client
-        .get(url)
-        .header("User-Agent", "BundleRock/0.1.0 (Downloader)")
-        .send()
-        .await
-        .map_err(|e| format!("Error descargando yt-dlp: {e}"))?;
+    // 1. Download yt-dlp only if not already present
+    if !target_file.exists() {
+        let response = download_client
+            .get(url)
+            .header("User-Agent", "BundleRock/0.1.0 (Downloader)")
+            .send()
+            .await
+            .map_err(|e| format!("Error descargando yt-dlp: {e}"))?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "El servidor de descarga respondió con estado HTTP {}",
-            response.status()
-        ));
+        if !response.status().is_success() {
+            return Err(format!(
+                "El servidor de descarga respondió con estado HTTP {}",
+                response.status()
+            ));
+        }
+
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| format!("Error recibiendo archivo yt-dlp: {e}"))?;
+
+        std::fs::write(&tmp_file, bytes)
+            .map_err(|e| format!("Error guardando archivo temporal yt-dlp en disco: {e}"))?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(&tmp_file)
+                .map_err(|e| e.to_string())?
+                .permissions();
+            perms.set_mode(0o755);
+            let _ = std::fs::set_permissions(&tmp_file, perms);
+        }
+
+        // Atomically replace target file
+        let _ = std::fs::remove_file(&target_file);
+        std::fs::rename(&tmp_file, &target_file)
+            .map_err(|e| format!("Error finalizando instalación de yt-dlp: {e}"))?;
     }
 
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("Error recibiendo archivo yt-dlp: {e}"))?;
-
-    std::fs::write(&tmp_file, bytes)
-        .map_err(|e| format!("Error guardando archivo temporal yt-dlp en disco: {e}"))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&tmp_file)
-            .map_err(|e| e.to_string())?
-            .permissions();
-        perms.set_mode(0o755);
-        let _ = std::fs::set_permissions(&tmp_file, perms);
-    }
-
-    // Atomically replace target file
-    let _ = std::fs::remove_file(&target_file);
-    std::fs::rename(&tmp_file, &target_file)
-        .map_err(|e| format!("Error finalizando instalación de yt-dlp: {e}"))?;
-
-    // Download FFmpeg
+    // 2. Download FFmpeg
     #[cfg(windows)]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-win32-x64",
+        "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-win-64.zip",
         "ffmpeg.exe",
     );
     #[cfg(target_os = "macos")]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-darwin-x64",
+        "https://evermeet.cx/ffmpeg/getrelease/zip",
         "ffmpeg",
     );
-    #[cfg(all(not(windows), not(target_os = "macos")))]
+    #[cfg(all(not(windows), not(target_os = "macos"), target_arch = "x86_64"))]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-linux-x64",
+        "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-linux-64.zip",
+        "ffmpeg",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos"), target_arch = "aarch64"))]
+    let (ff_url, ff_filename) = (
+        "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-linux-arm-64.zip",
+        "ffmpeg",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos"), target_arch = "arm"))]
+    let (ff_url, ff_filename) = (
+        "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-linux-armhf-32.zip",
+        "ffmpeg",
+    );
+    #[cfg(all(not(windows), not(target_os = "macos"), not(target_arch = "x86_64"), not(target_arch = "aarch64"), not(target_arch = "arm")))]
+    let (ff_url, ff_filename) = (
+        "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-linux-32.zip",
         "ffmpeg",
     );
 
     let ff_target_file = bin_dir.join(ff_filename);
     let ff_tmp_file = bin_dir.join(format!("{ff_filename}.tmp"));
 
-    if let Ok(ff_response) = download_client
-        .get(ff_url)
-        .header("User-Agent", "BundleRock/0.1.0 (Downloader)")
-        .send()
-        .await
-    {
-        if ff_response.status().is_success() {
-            if let Ok(ff_bytes) = ff_response.bytes().await {
-                if std::fs::write(&ff_tmp_file, ff_bytes).is_ok() {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        if let Ok(meta) = std::fs::metadata(&ff_tmp_file) {
-                            let mut perms = meta.permissions();
-                            perms.set_mode(0o755);
-                            let _ = std::fs::set_permissions(&ff_tmp_file, perms);
+    if !ff_target_file.exists() {
+        let ff_response = download_client
+            .get(ff_url)
+            .header("User-Agent", "BundleRock/0.1.0 (Downloader)")
+            .send()
+            .await
+            .map_err(|e| format!("Error descargando FFmpeg: {e}"))?;
+
+        if !ff_response.status().is_success() {
+            return Err(format!(
+                "El servidor de descarga de FFmpeg respondió con estado HTTP {}",
+                ff_response.status()
+            ));
+        }
+
+        let ff_bytes = ff_response
+            .bytes()
+            .await
+            .map_err(|e| format!("Error recibiendo archivo FFmpeg: {e}"))?;
+
+        if ff_url.ends_with(".zip") || ff_url.ends_with("/zip") {
+            let ff_filename = ff_filename.to_string();
+            let ff_tmp_file = ff_tmp_file.clone();
+            let ff_target_file = ff_target_file.clone();
+            
+            let result = tokio::task::spawn_blocking(move || {
+                let reader = std::io::Cursor::new(ff_bytes);
+                let mut archive = zip::ZipArchive::new(reader)
+                    .map_err(|e| format!("Error leyendo ZIP de FFmpeg: {e}"))?;
+                
+                for i in 0..archive.len() {
+                    if let Ok(mut file) = archive.by_index(i) {
+                        let normalized_name = file.name().replace('\\', "/");
+                        if normalized_name.split('/').last() == Some(ff_filename.as_str()) {
+                            let mut success = false;
+                            if let Ok(mut out_file) = std::fs::File::create(&ff_tmp_file) {
+                                if std::io::copy(&mut file, &mut out_file).is_ok() {
+                                    success = true;
+                                }
+                            }
+                            if success {
+                                #[cfg(unix)]
+                                {
+                                    use std::os::unix::fs::PermissionsExt;
+                                    if let Ok(meta) = std::fs::metadata(&ff_tmp_file) {
+                                        let mut perms = meta.permissions();
+                                        perms.set_mode(0o755);
+                                        let _ = std::fs::set_permissions(&ff_tmp_file, perms);
+                                    }
+                                }
+                                let _ = std::fs::remove_file(&ff_target_file);
+                                let _ = std::fs::rename(&ff_tmp_file, &ff_target_file);
+                            }
+                            return Ok(());
                         }
                     }
-                    let _ = std::fs::remove_file(&ff_target_file);
-                    let _ = std::fs::rename(&ff_tmp_file, &ff_target_file);
+                }
+                Err("No se encontró el ejecutable de FFmpeg en el archivo ZIP".to_string())
+            }).await;
+            
+            match result {
+                Ok(Err(e)) => return Err(e),
+                Err(e) => return Err(format!("Error en el hilo de extracción de FFmpeg: {e}")),
+                _ => {}
+            }
+        } else {
+            std::fs::write(&ff_tmp_file, ff_bytes)
+                .map_err(|e| format!("Error escribiendo archivo FFmpeg: {e}"))?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(meta) = std::fs::metadata(&ff_tmp_file) {
+                    let mut perms = meta.permissions();
+                    perms.set_mode(0o755);
+                    let _ = std::fs::set_permissions(&ff_tmp_file, perms);
                 }
             }
+            let _ = std::fs::remove_file(&ff_target_file);
+            let _ = std::fs::rename(&ff_tmp_file, &ff_target_file)
+                .map_err(|e| format!("Error renombrando FFmpeg temporal: {e}"))?;
         }
     }
 
@@ -1538,11 +1624,17 @@ pub async fn download_media_stream(
         .and_then(|s| s.to_str())
         .unwrap_or("video");
 
-    let chosen_format = match format_id.as_deref() {
+    let mut chosen_format = match format_id.as_deref() {
         Some("twitter-gif") | Some("twitter-mp4") => "bestvideo/best".to_string(),
         Some(f) if !f.trim().is_empty() => f.to_string(),
         _ => "bestvideo+bestaudio/best".to_string(),
     };
+
+    // If FFmpeg is NOT available on the system, yt-dlp CANNOT merge separate video and audio streams!
+    // Falling back to a pre-merged stream guarantees that video and audio are NEVER separated on disk.
+    if ffmpeg_path.is_none() && chosen_format.contains('+') {
+        chosen_format = "best[ext=mp4]/best".to_string();
+    }
 
     let is_gif_output = format_id.as_deref() == Some("twitter-gif")
         || task.media_format.as_deref() == Some("twitter-gif")
