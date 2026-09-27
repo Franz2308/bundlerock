@@ -3,6 +3,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { DownloadGroupRow, DownloadGroupItem } from './components/DownloadGroupRow';
+import { DownloadCard } from './components/DownloadCard';
 import { NewDownloadModal } from './components/NewDownloadModal';
 import { TaskDetailsModal } from './components/TaskDetailsModal';
 import { EmptyState } from './components/EmptyState';
@@ -573,8 +574,6 @@ export function App() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
           <Toolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
             selectedTask={toolbarSelectedTask}
             onClearSelection={() => setSelectedTaskId(null)}
             totalTasksCount={tasks.length}
@@ -601,18 +600,16 @@ export function App() {
                   setSearchQuery('');
                 }}
               />
-            ) : (
+            ) : viewMode === 'detailed' ? (
               <div className="w-full h-full min-w-[690px]">
-                {viewMode === 'detailed' && (
-                  <div className="download-grid bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1 select-none">
-                    <div className="text-center font-bold">#</div>
-                    <div className="min-w-0">Nombre de Archivo / Origen</div>
-                    <div className="min-w-0">Tamaño / Progreso</div>
-                    <div className="min-w-0 text-center">Velocidad / ETA</div>
-                    <div className="min-w-0 text-center">Estado</div>
-                    <div className="min-w-0 text-center">Acción</div>
-                  </div>
-                )}
+                <div className="download-grid bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1 select-none">
+                  <div className="text-center font-bold">#</div>
+                  <div className="min-w-0">Nombre de Archivo / Origen</div>
+                  <div className="min-w-0">Tamaño / Progreso</div>
+                  <div className="min-w-0 text-center">Velocidad / ETA</div>
+                  <div className="min-w-0 text-center">Estado</div>
+                  <div className="min-w-0 text-center">Acción</div>
+                </div>
                 <div className="space-y-0.5">
                   {taskGroups.map((group, index) => (
                     <DownloadGroupRow
@@ -633,6 +630,24 @@ export function App() {
                     />
                   ))}
                 </div>
+              </div>
+            ) : (
+              /* Compact Cards View */
+              <div className="w-full p-2.5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
+                {taskGroups.map((group) => (
+                  <DownloadCard
+                    key={group.id}
+                    group={group}
+                    isSelected={selectedTaskId === group.id || group.tasks.some((t) => t.id === selectedTaskId)}
+                    onSelect={(id) => setSelectedTaskId((prev) => (prev === id ? null : id))}
+                    onPauseTask={handlePause}
+                    onResumeTask={handleResume}
+                    onCancelTask={handleCancel}
+                    onOpenFile={openFile}
+                    onOpenFolder={openContainingFolder}
+                    onInspectTask={setInspectingTask}
+                  />
+                ))}
               </div>
             )}
           </main>
