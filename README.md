@@ -8,24 +8,29 @@ Gestor de descargas acelerado y extractor multimedia para Windows, desarrollado 
 
 BundleRock es una aplicación de escritorio de alto rendimiento orientada a la gestión y aceleración de transferencias de archivos en entornos Windows. Inspirada en la arquitectura técnica de los gestores tradicionales como Internet Download Manager (IDM), combina un motor de segmentación dinámica multihilo implementado en Rust con un subsistema extractor multimedia basado en `yt-dlp` y `FFmpeg`.
 
-Su interfaz de usuario prioriza la sobriedad, la densidad de información y la estética clásica Win32, ofreciendo control exhaustivo sobre las conexiones, formatos y organización de las descargas.
+Su interfaz de usuario prioriza la sobriedad, la densidad de información y la estética clásica Win32, ofreciendo control exhaustivo sobre las conexiones, formatos, temas visuales y organización de las descargas.
 
 ---
 
 ## Características Principales
 
 ### Motor de Descarga Acelerada
-* **Segmentación Dinámica Concurrente:** División automática de archivos en múltiples conexiones paralelas (4, 8, 16 o 32 hilos) mediante peticiones HTTP `Range`, maximizando el aprovechamiento del ancho de banda disponible.
+* **Segmentación Dinámica Concurrente:** División automática de archivos en múltiples conexiones paralelas (configurables en 1, 4, 8, 16 o 32 hilos) mediante peticiones HTTP `Range`, maximizando el aprovechamiento del ancho de banda disponible.
 * **Sondeo Preliminar (Probe):** Inspección remota de cabeceras (`Accept-Ranges`, `Content-Length`, `Content-Disposition`, `ETag`) antes de iniciar la transferencia para determinar la viabilidad de la descarga acelerada y el tamaño exacto del recurso.
 * **Escritura Eficiente:** Manejo asíncrono de escritura en disco a través de Tokio, evitando bloqueos en la interfaz y minimizando tiempos de ensamblado.
+* **Monitoreo de Progreso en Tiempo Real:** Transmisión fluida de métricas de velocidad, porcentaje y tiempo restante (ETA) sin retardos ni bloqueos por buffer en Windows.
 
-### Extracción Multimedia y Redes Sociales
+### Extracción Multimedia y Galerías
 * **Soporte de Plataformas:** Descarga de transmisiones desacopladas (audio y video) desde YouTube, Twitter/X, Facebook y Reddit.
+* **Galerías de Imágenes:** Detección de publicaciones con múltiples imágenes (Twitter/X, Reddit), selector interactivo con casillas de verificación y opciones de almacenamiento (crear subcarpeta temática o guardar imágenes sueltas).
 * **Conversión Automática de GIFs de Twitter:** Detección de flujos de video en bucle y remuxing a formato `.gif` de alta calidad con paleta optimizada mediante FFmpeg.
-* **Selección Multiformato:** Capacidad para seleccionar simultáneamente múltiples resoluciones o variantes de un mismo recurso, generando tareas independientes con nombres diferenciados.
+* **Selección Multiformato:** Capacidad para seleccionar simultáneamente múltiples resoluciones o variantes de un mismo recurso, generando tareas independientes organizadas en grupos.
 * **Mecanismo de Respaldo (Stream Fallback):** Si las dependencias de multiplexado no se encuentran disponibles, el sistema conmuta automáticamente a flujos pre-ensamblados para garantizar que el archivo resultante contenga audio y video integrados.
 
-### Interfaz de Usuario y Experiencia
+### Interfaz de Usuario y Personalización
+* **Panel de Configuración Central:** Modal de ajustes accesible desde la barra de herramientas o mediante el atajo de teclado `Ctrl+,` para gestionar temas visuales, conexiones predeterminadas y nivel de telemetría.
+* **Modo Oscuro Integrado:** Esquema de color nocturno de alto contraste con tonos azul grisáceo (`#0c1017`, `#141b27`, `#1a2332`), manteniendo el diseño retro sobrio y reduciendo la fatiga visual.
+* **Nivel de Información Técnica (Estadísticas para Nerds):** Opción para ocultar métricas técnicas avanzadas por defecto (tablas de segmentos, rangos crudos de bytes) y habilitarlas a voluntad.
 * **Estructura Jerárquica en Árbol:** Visualización de descargas multivariante agrupadas con nodos expandibles estilo Windows Explorer.
 * **Visualización Dual:** Soporte para alternar entre vista detallada (tabla con métricas completas de tamaño, velocidad y estado) y vista compacta (tarjetas responsivas con diseño uniforme).
 * **Confirmación Configurable:** Notificación preventiva ante descargas múltiples de un mismo enlace, con persistencia de preferencia para suprimir advertencias futuras.
@@ -63,11 +68,11 @@ Su interfaz de usuario prioriza la sobriedad, la densidad de información y la e
 ```text
 bundlerock/
 ├── src/
-│   ├── components/            # Componentes de interfaz (TitleBar, Toolbar, Modales, Vistas)
+│   ├── components/            # Componentes de interfaz (TitleBar, Toolbar, SettingsModal, NewDownloadModal, Vistas)
 │   ├── services/              # Cliente IPC de comunicación con el backend Tauri
-│   ├── types/                 # Definiciones de tipos TypeScript y modelos de datos
+│   ├── types/                 # Definiciones de tipos TypeScript y modelos de datos (descargas, ajustes)
 │   ├── utils/                 # Utilidades de formato de bytes, velocidad y clasificación
-│   └── App.tsx                # Orquestador principal de estado y eventos
+│   └── App.tsx                # Orquestador principal de estado, tema y eventos
 ├── src-tauri/
 │   ├── src/
 │   │   ├── commands.rs        # Comandos IPC expuestos a la capa de presentación
@@ -125,7 +130,7 @@ npm run tauri build
 
 Los binarios finales se generarán en las siguientes ubicaciones:
 * **Ejecutable Portable:** `src-tauri/target/release/bundlerock.exe`
-* **Instalador NSIS:** `src-tauri/target/release/bundle/nsis/BundleRock_0.1.0_x64-setup.exe`
+* **Instalador NSIS:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.0_x64-setup.exe`
 
 ---
 
