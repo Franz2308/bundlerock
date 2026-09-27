@@ -21,6 +21,7 @@ import { cn } from '../utils/cn';
 interface DownloadCardProps {
   group: DownloadGroupItem;
   isSelected: boolean;
+  nerdStats?: boolean;
   onSelect: (id: string) => void;
   onPauseTask: (id: string) => void;
   onResumeTask: (id: string) => void;
@@ -33,6 +34,7 @@ interface DownloadCardProps {
 export const DownloadCard: React.FC<DownloadCardProps> = ({
   group,
   isSelected,
+  nerdStats = false,
   onSelect,
   onPauseTask,
   onResumeTask,
@@ -110,15 +112,15 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
       onClick={() => onSelect(group.id)}
       onDoubleClick={handleDoubleClick}
       className={cn(
-        'group relative flex flex-col justify-between p-2.5 bg-white border select-none transition-all shadow-2xs hover:shadow-xs',
+        'group relative flex flex-col justify-between p-2.5 bg-white dark:bg-[#141b27] border select-none transition-all shadow-2xs hover:shadow-xs',
         isSelected
-          ? 'border-blue-500 bg-[#e3f0fa] ring-1 ring-blue-400'
-          : 'border-slate-300 hover:border-slate-400'
+          ? 'border-blue-500 bg-[#e3f0fa] dark:bg-[#1b3152] ring-1 ring-blue-400'
+          : 'border-slate-300 dark:border-[#2d3a4f] hover:border-slate-400 dark:hover:border-[#3b4c66]'
       )}
     >
       {/* Header: Thumbnail / Icon + Title + Status */}
       <div className="flex items-start gap-2.5 min-w-0">
-        <div className="w-9 h-9 rounded-xs bg-slate-100 border border-slate-300 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="w-9 h-9 rounded-xs bg-slate-100 dark:bg-[#1e2738] border border-slate-300 dark:border-[#2f3d54] flex items-center justify-center shrink-0 overflow-hidden">
           {thumbnail && !imgError ? (
             <img
               src={thumbnail}
@@ -127,7 +129,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               onError={() => setImgError(true)}
             />
           ) : isMulti ? (
-            <Layers className="w-4 h-4 text-blue-700" />
+            <Layers className="w-4 h-4 text-blue-700 dark:text-blue-400" />
           ) : (
             getCategoryIcon()
           )}
@@ -136,7 +138,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1 mb-0.5">
             <span
-              className="text-xs font-bold text-slate-800 truncate"
+              className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate"
               title={group.title}
             >
               {group.title}
@@ -146,13 +148,18 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
           <div className="flex items-center gap-1.5 flex-wrap">
             {getStatusBadge(group.status)}
             {isMulti && (
-              <span className="px-1.5 py-0.2 bg-[#cce8ff] text-blue-900 border border-blue-400 text-[10px] font-bold shrink-0">
+              <span className="px-1.5 py-0.2 bg-[#cce8ff] dark:bg-[#1c3558] text-blue-900 dark:text-blue-200 border border-blue-400 dark:border-blue-600 text-[10px] font-bold shrink-0">
                 {group.tasks.length} formatos
               </span>
             )}
             {!isMulti && primaryTask?.resolution && (
-              <span className="px-1.5 py-0.2 bg-blue-50 text-blue-900 border border-blue-300 text-[10px] font-mono font-bold shrink-0 uppercase">
+              <span className="px-1.5 py-0.2 bg-blue-50 dark:bg-[#192b45] text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-600 text-[10px] font-mono font-bold shrink-0 uppercase">
                 {primaryTask.resolution}
+              </span>
+            )}
+            {nerdStats && (
+              <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-[#1e2738] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[#384761] text-[10px] font-mono shrink-0">
+                {primaryTask?.segments ? primaryTask.segments.length : 1} hilos
               </span>
             )}
           </div>
@@ -161,34 +168,34 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
 
       {/* Middle: Progress Bar & Transfer Metrics */}
       <div className="my-2.5">
-        <div className="w-full h-2.5 bg-slate-200 border border-slate-400 rounded-none overflow-hidden flex">
+        <div className="w-full h-2.5 bg-slate-200 dark:bg-[#1e2738] border border-slate-400 dark:border-[#324057] rounded-none overflow-hidden flex">
           {group.status === 'completed' ? (
-            <div className="w-full h-full bg-[#1a365d]"></div>
+            <div className="w-full h-full bg-[#1a365d] dark:bg-[#204070]"></div>
           ) : group.status === 'paused' ? (
             <div
-              className="h-full bg-slate-400"
+              className="h-full bg-slate-400 dark:bg-slate-600"
               style={{ width: `${progressPercent}%` }}
             ></div>
           ) : group.status === 'failed' ? (
             <div
-              className="h-full bg-red-600"
+              className="h-full bg-red-600 dark:bg-red-500"
               style={{ width: `${progressPercent}%` }}
             ></div>
           ) : (
             <div
-              className="h-full bg-gradient-to-r from-[#1a365d] to-red-600 transition-all duration-200"
+              className="h-full bg-gradient-to-r from-[#1a365d] to-red-600 dark:from-[#254d85] dark:to-red-500 transition-all duration-200"
               style={{ width: `${progressPercent}%` }}
             ></div>
           )}
         </div>
 
-        <div className="flex items-center justify-between text-[10px] text-slate-600 mt-1">
-          <span className="font-semibold text-slate-600 truncate font-mono">
+        <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mt-1">
+          <span className="font-semibold text-slate-600 dark:text-slate-400 truncate font-mono">
             {group.status === 'completed'
               ? formatBytes(group.totalBytes || group.downloadedBytes)
               : `${formatBytes(group.downloadedBytes)} / ${formatBytes(group.totalBytes)}`}
           </span>
-          <span className="font-bold text-red-600 font-mono">
+          <span className="font-bold text-red-600 dark:text-red-400 font-mono">
             {group.status === 'downloading'
               ? formatSpeed(group.speedBps)
               : `${progressPercent.toFixed(0)}%`}
@@ -197,8 +204,8 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
       </div>
 
       {/* Footer: Quick Action Buttons */}
-      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 text-xs">
-        <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
+      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-[#202b3d] text-xs">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[120px]">
           {isMulti
             ? group.tasks.map((t) => t.resolution || t.media_format || 'Auto').join(', ')
             : primaryTask?.file_name}
@@ -209,7 +216,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             <button
               type="button"
               onClick={() => onPauseTask(primaryTask?.id || group.id)}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Pausar"
             >
               <Pause className="w-3 h-3" />
@@ -220,7 +227,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             <button
               type="button"
               onClick={() => onResumeTask(primaryTask?.id || group.id)}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-emerald-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Reanudar"
             >
               <Play className="w-3 h-3" />
@@ -231,7 +238,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             <button
               type="button"
               onClick={() => onOpenFolder(primaryTask.file_path)}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Abrir carpeta contenedora"
             >
               <FolderOpen className="w-3 h-3" />
@@ -242,7 +249,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             <button
               type="button"
               onClick={() => onInspectTask(primaryTask)}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 hover:text-blue-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors"
               title="Propiedades y detalles"
             >
               <Info className="w-3 h-3" />
@@ -252,7 +259,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
           <button
             type="button"
             onClick={() => onCancelTask(primaryTask?.id || group.id, false)}
-            className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 hover:text-red-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+            className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-red-700 dark:hover:text-red-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors"
             title="Eliminar de la lista"
           >
             <Trash2 className="w-3 h-3" />

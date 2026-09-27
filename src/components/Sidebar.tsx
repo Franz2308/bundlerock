@@ -71,23 +71,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [statusOpen, setStatusOpen] = useState(true);
 
   return (
-    <aside className="w-44 sm:w-48 lg:w-56 bg-slate-100 border-r border-slate-300 flex flex-col h-full select-none shrink-0 transition-[width] duration-150">
+    <aside className="w-44 sm:w-48 lg:w-56 bg-slate-100 dark:bg-[#101520] border-r border-slate-300 dark:border-[#202b3d] flex flex-col h-full select-none shrink-0 transition-[width] duration-150">
       {/* Categories Section */}
       <div className="flex flex-col">
         <button
           type="button"
           onClick={() => setCategoriesOpen(!categoriesOpen)}
-          className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
+          className="bg-slate-200 hover:bg-slate-300/80 dark:bg-[#161f2e] dark:hover:bg-[#1e2a3e] border-y border-slate-300 dark:border-[#202b3d] p-1 px-2 font-semibold text-xs text-slate-700 dark:text-slate-300 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
           <span className="truncate">Categorías</span>
           {categoriesOpen ? (
-            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5] shrink-0" />
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[2.5] shrink-0" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5] shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 stroke-[2.5] shrink-0" />
           )}
         </button>
         {categoriesOpen && (
-          <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
+          <div className="bg-white dark:bg-[#141b27] py-1 text-sm border-b border-slate-300 dark:border-[#202b3d] flex-1">
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isSelected = selectedCategory === cat.id;
@@ -100,18 +100,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={cn(
                     'w-full flex items-center justify-between px-2 sm:px-3 py-1 cursor-pointer min-w-0',
                     isSelected
-                      ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
-                      : 'text-slate-800 hover:bg-slate-50 border border-transparent'
+                      ? 'bg-[#e3f0fa] dark:bg-[#1c2c44] border border-[#a6c8ff] dark:border-[#2d4d7a] -my-[1px] relative z-10'
+                      : 'text-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a2332] border border-transparent'
                   )}
                 >
                   <div className="flex items-center gap-2 truncate min-w-0 flex-1">
-                    <Icon className={cn('w-4 h-4 shrink-0 text-slate-500', isSelected && 'text-blue-600')} />
-                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900")} title={cat.label}>
+                    <Icon className={cn('w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400', isSelected && 'text-blue-600 dark:text-blue-400')} />
+                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900 dark:text-blue-300")} title={cat.label}>
                       {cat.label}
                     </span>
                   </div>
                   {count > 0 && (
-                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700" : "text-slate-500")}>
+                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700 dark:text-blue-400" : "text-slate-500 dark:text-slate-400")}>
                       ({count})
                     </span>
                   )}
@@ -127,17 +127,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => setStatusOpen(!statusOpen)}
-          className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
+          className="bg-slate-200 hover:bg-slate-300/80 dark:bg-[#161f2e] dark:hover:bg-[#1e2a3e] border-y border-slate-300 dark:border-[#202b3d] p-1 px-2 font-semibold text-xs text-slate-700 dark:text-slate-300 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
           <span className="truncate">Estado / Filtro</span>
           {statusOpen ? (
-            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5] shrink-0" />
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[2.5] shrink-0" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5] shrink-0" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 stroke-[2.5] shrink-0" />
           )}
         </button>
         {statusOpen && (
-          <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
+          <div className="bg-white dark:bg-[#141b27] py-1 text-sm border-b border-slate-300 dark:border-[#202b3d] flex-1">
             {statuses.map((st) => {
               const Icon = st.icon;
               const isSelected = selectedStatus === st.id;
@@ -150,24 +150,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={cn(
                     'w-full flex items-center justify-between px-2 sm:px-3 py-1 cursor-pointer min-w-0',
                     isSelected
-                      ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
-                      : 'text-slate-800 hover:bg-slate-50 border border-transparent'
+                      ? 'bg-[#e3f0fa] dark:bg-[#1c2c44] border border-[#a6c8ff] dark:border-[#2d4d7a] -my-[1px] relative z-10'
+                      : 'text-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1a2332] border border-transparent'
                   )}
                 >
                   <div className="flex items-center gap-2 truncate min-w-0 flex-1">
                     <Icon
                       className={cn(
                         'w-4 h-4 shrink-0',
-                        isSelected ? 'text-blue-600' : 'text-slate-500',
+                        isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400',
                         st.id === 'downloading' && count > 0 && 'animate-spin'
                       )}
                     />
-                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900")} title={st.label}>
+                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900 dark:text-blue-300")} title={st.label}>
                       {st.label}
                     </span>
                   </div>
                   {count > 0 && (
-                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700" : "text-slate-500")}>
+                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700 dark:text-blue-400" : "text-slate-500 dark:text-slate-400")}>
                       ({count})
                     </span>
                   )}
@@ -178,13 +178,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {/* Network & Storage Summary Panel (Moved some to bottom bar but keep a tiny box here) */}
-      <div className="mt-auto p-2 border-t border-slate-300 bg-slate-100 flex items-center justify-center">
+      {/* Network & Storage Summary Panel */}
+      <div className="mt-auto p-2 border-t border-slate-300 dark:border-[#202b3d] bg-slate-100 dark:bg-[#101520] flex items-center justify-center">
         <button
           onClick={onOpenNewDownload}
-          className="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-400 rounded-sm text-slate-800 font-semibold text-xs flex items-center justify-center gap-2 shadow-sm active:bg-slate-300 active:shadow-inner"
+          className="w-full py-1.5 px-3 bg-slate-100 dark:bg-[#17202f] hover:bg-slate-200 dark:hover:bg-[#1f2c40] border border-slate-400 dark:border-[#2d3d54] rounded-sm text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 shadow-sm active:bg-slate-300 dark:active:bg-[#25354e] active:shadow-inner"
         >
-          <Plus className="w-4 h-4 text-emerald-600" />
+          <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Nueva Descarga</span>
         </button>
       </div>

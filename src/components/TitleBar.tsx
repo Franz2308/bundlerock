@@ -72,13 +72,13 @@ export const TitleBar: React.FC = () => {
   return (
     <header
       data-tauri-drag-region
-      className="h-9 bg-[#1a365d] text-white flex items-center justify-between select-none shrink-0 border-b border-[#0f2442] shadow-sm z-50 transition-colors"
+      className="h-9 bg-[#1a365d] dark:bg-[#0c1524] text-white flex items-center justify-between select-none shrink-0 border-b border-[#0f2442] dark:border-[#162338] shadow-sm z-50 transition-colors"
     >
       {/* Left: App Logo & Name */}
       <div
         className="flex items-center gap-2 px-3 h-full cursor-default select-none pointer-events-none"
       >
-        <div className="w-5 h-5 rounded-full border border-white/70 bg-[#244a77] flex items-center justify-center shadow-sm pointer-events-none select-none">
+        <div className="w-5 h-5 rounded-full border border-white/70 bg-[#244a77] dark:bg-[#1a3052] flex items-center justify-center shadow-sm pointer-events-none select-none">
           <ArrowDown className="w-3 h-3 text-white stroke-[2.5]" />
         </div>
         <span className="tracking-wide text-xs font-bold uppercase text-white pointer-events-none select-none">

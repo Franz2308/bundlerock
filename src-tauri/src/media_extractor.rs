@@ -1682,6 +1682,7 @@ pub async fn download_media_stream(
     // Allow resuming partial downloads
     cmd.arg("-c");
     cmd.arg("--newline");
+    cmd.env("PYTHONUNBUFFERED", "1");
     cmd.arg("--progress-delta").arg("0.5");
     cmd.arg("--no-colors");
     cmd.arg("--no-playlist");
@@ -1749,8 +1750,8 @@ pub async fn download_media_stream(
                     Ok(Some(line)) => {
                         let trimmed = line.trim();
 
-                        if trimmed.starts_with("download-json:") {
-                            let json_payload = &trimmed["download-json:".len()..];
+                        if let Some(pos) = trimmed.find("download-json:") {
+                            let json_payload = &trimmed[pos + "download-json:".len()..];
                             if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_payload) {
                                 if let Some(downloaded) = val.get("downloaded").and_then(|v| v.as_u64()) {
                                     task.downloaded_bytes = downloaded;
@@ -1784,7 +1785,7 @@ pub async fn download_media_stream(
                                     task.stage_message = Some(stage);
                                 }
 
-                                if last_emit.elapsed() >= Duration::from_millis(250) {
+                                if last_emit.elapsed() >= Duration::from_millis(200) {
                                     last_emit = std::time::Instant::now();
                                     task.updated_at = crate::models::now_millis();
 
@@ -1802,11 +1803,14 @@ pub async fn download_media_stream(
                                     }
                                 }
                             }
-                        } else if trimmed.starts_with("[download]") {
+                        } else if trimmed.contains("[download]") {
                             // Fallback parser for standard yt-dlp percentage lines
                             if let Some(pct) = parse_ytdlp_percent_line(trimmed) {
                                 task.progress_percentage = task.progress_percentage.max(pct).clamp(0.0, 99.9);
-                                if last_emit.elapsed() >= Duration::from_millis(250) {
+                                if let Some(spd) = parse_ytdlp_speed_bps(trimmed) {
+                                    task.speed_bps = spd;
+                                }
+                                if last_emit.elapsed() >= Duration::from_millis(200) {
                                     last_emit = std::time::Instant::now();
                                     task.updated_at = crate::models::now_millis();
 
@@ -1830,10 +1834,15 @@ pub async fn download_media_stream(
                 }
             }
             _ = ticker.tick() => {
-                // Heartbeat to keep frontend updated on stage changes (e.g. during ffmpeg merging when stdout is silent)
+                // Heartbeat to keep frontend updated on stage changes and progress
                 let current_stage = stage_tracker.read().await.clone();
-                if current_stage != task.stage_message {
+                let stage_changed = current_stage != task.stage_message;
+                if stage_changed {
                     task.stage_message = current_stage;
+                }
+
+                if (stage_changed || last_emit.elapsed() >= Duration::from_millis(300)) && task.status == DownloadStatus::Downloading {
+                    last_emit = std::time::Instant::now();
                     task.updated_at = crate::models::now_millis();
 
                     let mut tasks = tasks_map_clone.write().await;
@@ -2029,6 +2038,32 @@ pub fn parse_ytdlp_percent_line(line: &str) -> Option<f64> {
     pct_str.parse::<f64>().ok()
 }
 
+/// Helper to parse standard yt-dlp speed outputs like `at 4.20MiB/s` or `at 500.00KiB/s`
+pub fn parse_ytdlp_speed_bps(line: &str) -> Option<u64> {
+    if !line.contains(" at ") {
+        return None;
+    }
+    let after_at = line.split(" at ").nth(1)?.trim();
+    let speed_part = after_at.split_whitespace().next()?;
+    if let Some(val_str) = speed_part.strip_suffix("GiB/s") {
+        let val = val_str.parse::<f64>().ok()?;
+        return Some((val * 1024.0 * 1024.0 * 1024.0) as u64);
+    }
+    if let Some(val_str) = speed_part.strip_suffix("MiB/s") {
+        let val = val_str.parse::<f64>().ok()?;
+        return Some((val * 1024.0 * 1024.0) as u64);
+    }
+    if let Some(val_str) = speed_part.strip_suffix("KiB/s") {
+        let val = val_str.parse::<f64>().ok()?;
+        return Some((val * 1024.0) as u64);
+    }
+    if let Some(val_str) = speed_part.strip_suffix("B/s") {
+        let val = val_str.parse::<f64>().ok()?;
+        return Some(val as u64);
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2121,6 +2156,19 @@ mod tests {
             Some(0.5)
         );
         assert_eq!(parse_ytdlp_percent_line("Invalid line"), None);
+    }
+
+    #[test]
+    fn test_parse_ytdlp_speed() {
+        assert_eq!(
+            parse_ytdlp_speed_bps("[download]  45.2% of ~ 50.20MiB at  4.00MiB/s ETA 00:06"),
+            Some(4 * 1024 * 1024)
+        );
+        assert_eq!(
+            parse_ytdlp_speed_bps("[download]  10.0% of ~ 10.00MiB at  512.00KiB/s ETA 00:10"),
+            Some(512 * 1024)
+        );
+        assert_eq!(parse_ytdlp_speed_bps("No speed info"), None);
     }
 
     #[test]

@@ -42,6 +42,7 @@ interface DownloadGroupRowProps {
   group: DownloadGroupItem;
   groupIndex: number;
   viewMode?: 'detailed' | 'compact';
+  nerdStats?: boolean;
   isExpanded: boolean;
   onToggleExpand: (groupId: string) => void;
   selectedId: string | null;
@@ -58,6 +59,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
   group,
   groupIndex,
   viewMode = 'detailed',
+  nerdStats = false,
   isExpanded,
   onToggleExpand,
   selectedId,
@@ -135,14 +137,16 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
         onClick={() => onSelect(task.id)}
         onDoubleClick={() => task.status === 'completed' && onOpenFile(task.file_path)}
         className={cn(
-          'download-grid border-b border-slate-200 px-1 text-[11px] transition-colors cursor-pointer select-none',
+          'download-grid border-b border-slate-200 dark:border-[#202b3d] px-1 text-[11px] transition-colors cursor-pointer select-none',
           isCompact ? 'py-1' : 'py-1.5',
-          isSelected ? 'bg-[#e3f0fa] border-[#a6c8ff] -mx-[1px] px-[5px]' : 'hover:bg-slate-50 bg-white'
+          isSelected
+            ? 'bg-[#e3f0fa] dark:bg-[#1b3152] border-[#a6c8ff] dark:border-[#3182ce] -mx-[1px] px-[5px]'
+            : 'hover:bg-slate-50 dark:hover:bg-[#182130] bg-white dark:bg-[#131924]'
         )}
       >
-        <div className="text-center font-bold text-slate-600">{groupIndex}</div>
+        <div className="text-center font-bold text-slate-600 dark:text-slate-400">{groupIndex}</div>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="shrink-0 w-5 h-5 flex items-center justify-center bg-slate-100 border border-slate-300 rounded-sm overflow-hidden">
+          <div className="shrink-0 w-5 h-5 flex items-center justify-center bg-slate-100 dark:bg-[#1e2738] border border-slate-300 dark:border-[#2f3d54] rounded-sm overflow-hidden">
             {thumbnail && !imgError ? (
               <img
                 src={thumbnail}
@@ -155,26 +159,27 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             )}
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="font-semibold text-slate-800 truncate" title={task.file_name}>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={task.file_name}>
               {task.file_name}
             </span>
-            <span className="text-[9px] text-slate-500 truncate" title={domain}>
-              {downStr} de {totalStr} • {task.segments ? task.segments.length : 1} hilos activos
+            <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate" title={domain}>
+              {downStr} de {totalStr}
+              {nerdStats ? ` • ${task.segments ? task.segments.length : 1} hilos activos` : ''}
             </span>
           </div>
         </div>
 
         <div className="flex flex-col min-w-0 pr-1 sm:pr-2">
           <div className="flex items-center justify-between mb-0.5 text-[10px]">
-            <span className="text-slate-600 font-semibold truncate">{totalStr}</span>
-            <span className="font-bold text-slate-800 shrink-0 ml-1">{task.progress_percentage.toFixed(0)}%</span>
+            <span className="text-slate-600 dark:text-slate-400 font-semibold truncate">{totalStr}</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-1">{task.progress_percentage.toFixed(0)}%</span>
           </div>
-          <div className="w-full h-2.5 bg-slate-200 border border-slate-400 rounded-none overflow-hidden flex">
+          <div className="w-full h-2.5 bg-slate-200 dark:bg-[#1e2738] border border-slate-400 dark:border-[#324057] rounded-none overflow-hidden flex">
             {task.status === 'completed' ? (
-              <div className="w-full h-full bg-[#1a365d]"></div>
+              <div className="w-full h-full bg-[#1a365d] dark:bg-[#204070]"></div>
             ) : (
               <div
-                className="h-full bg-gradient-to-r from-[#1a365d] to-red-600"
+                className="h-full bg-gradient-to-r from-[#1a365d] to-red-600 dark:from-[#254d85] dark:to-red-500 transition-all duration-200"
                 style={{ width: `${task.progress_percentage}%` }}
               ></div>
             )}
@@ -182,8 +187,8 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
         </div>
 
         <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] min-w-0">
-          <span className="font-bold text-red-600 truncate">{speedStr}</span>
-          <span className="font-semibold text-slate-700 shrink-0 ml-1">{etaStr}</span>
+          <span className="font-bold text-red-600 dark:text-red-400 truncate">{speedStr}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0 ml-1">{etaStr}</span>
         </div>
 
         <div className="text-center min-w-0 truncate">{getStatusBadge()}</div>
@@ -193,7 +198,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onPauseTask(task.id); }}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Pausar"
             >
               <Pause className="w-3.5 h-3.5" />
@@ -203,7 +208,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onResumeTask(task.id); }}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-emerald-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Reanudar"
             >
               <Play className="w-3.5 h-3.5" />
@@ -213,7 +218,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onOpenFolder(task.file_path); }}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Abrir carpeta"
             >
               <FolderOpen className="w-3.5 h-3.5" />
@@ -222,7 +227,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onInspectTask(task); }}
-            className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 hover:text-blue-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
+            className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
             title="Propiedades y detalles"
           >
             <Info className="w-3.5 h-3.5" />
@@ -230,7 +235,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onCancelTask(task.id, false); }}
-            className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-rose-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+            className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-rose-600 dark:text-rose-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
             title="Eliminar"
           >
             <X className="w-3.5 h-3.5" />
@@ -295,7 +300,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
   };
 
   return (
-    <div className="flex flex-col border-b border-slate-200">
+    <div className="flex flex-col border-b border-slate-200 dark:border-[#202b3d]">
       {/* 2.1 Parent Tree Node Row */}
       <div
         onClick={() => onSelect(group.id)}
@@ -304,33 +309,33 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           'download-grid px-1 text-[11px] transition-colors cursor-pointer select-none',
           isCompact ? 'py-1.5' : 'py-2',
           isGroupSelected
-            ? 'bg-[#e0eef9] border-l-4 border-l-blue-600'
-            : 'bg-slate-50 hover:bg-slate-100/90 border-l-4 border-l-slate-400'
+            ? 'bg-[#e0eef9] dark:bg-[#1b3152] border-l-4 border-l-blue-600'
+            : 'bg-slate-50 dark:bg-[#141b27] hover:bg-slate-100/90 dark:hover:bg-[#192231] border-l-4 border-l-slate-400 dark:border-l-slate-600'
         )}
       >
         {/* Tree expander button & Index */}
-        <div className="flex items-center justify-center gap-1 font-bold text-slate-700">
+        <div className="flex items-center justify-center gap-1 font-bold text-slate-700 dark:text-slate-300">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpand(group.id);
             }}
-            className="w-4 h-4 flex items-center justify-center bg-white hover:bg-blue-50 border border-slate-400 shadow-xs cursor-pointer transition-colors"
+            className="w-4 h-4 flex items-center justify-center bg-white dark:bg-[#1e2738] hover:bg-blue-50 dark:hover:bg-[#253347] border border-slate-400 dark:border-[#384761] shadow-xs cursor-pointer transition-colors"
             title={isExpanded ? 'Contraer formatos' : 'Expandir formatos descargados'}
           >
             {isExpanded ? (
-              <ChevronDown className="w-3 h-3 text-blue-700 stroke-[2.5]" />
+              <ChevronDown className="w-3 h-3 text-blue-700 dark:text-blue-400 stroke-[2.5]" />
             ) : (
-              <ChevronRight className="w-3 h-3 text-slate-700 stroke-[2.5]" />
+              <ChevronRight className="w-3 h-3 text-slate-700 dark:text-slate-300 stroke-[2.5]" />
             )}
           </button>
-          <span className="font-mono text-xs text-slate-600">{groupIndex}</span>
+          <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{groupIndex}</span>
         </div>
 
         {/* Group Title, Thumbnail, and Format Count Badge */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 border border-slate-300 rounded-sm overflow-hidden">
+          <div className="shrink-0 w-6 h-6 flex items-center justify-center bg-slate-200 dark:bg-[#1e2738] border border-slate-300 dark:border-[#2f3d54] rounded-sm overflow-hidden">
             {group.thumbnail && !imgError ? (
               <img
                 src={group.thumbnail}
@@ -339,19 +344,19 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                 onError={() => setImgError(true)}
               />
             ) : (
-              <Film className="w-4 h-4 text-blue-700" />
+              <Film className="w-4 h-4 text-blue-700 dark:text-blue-400" />
             )}
           </div>
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-slate-900 truncate text-xs" title={group.title}>
+              <span className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs" title={group.title}>
                 {group.title}
               </span>
-              <span className="px-1.5 py-0.2 bg-[#cce8ff] text-blue-900 border border-blue-400 text-[10px] font-bold shrink-0">
+              <span className="px-1.5 py-0.2 bg-[#cce8ff] dark:bg-[#1c3558] text-blue-900 dark:text-blue-200 border border-blue-400 dark:border-blue-600 text-[10px] font-bold shrink-0">
                 {group.tasks.length} formatos
               </span>
             </div>
-            <span className="text-[9px] text-slate-500 truncate" title={domain}>
+            <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate" title={domain}>
               {downStr} de {totalStr} • {domain} • Clic para {isExpanded ? 'contraer' : 'expandir'}
             </span>
           </div>
@@ -360,15 +365,15 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
         {/* Overall Group Progress */}
         <div className="flex flex-col min-w-0 pr-1 sm:pr-2">
           <div className="flex items-center justify-between mb-0.5 text-[10px]">
-            <span className="text-slate-600 font-semibold truncate">{totalStr}</span>
-            <span className="font-bold text-slate-800 shrink-0 ml-1">{group.progressPercentage.toFixed(0)}%</span>
+            <span className="text-slate-600 dark:text-slate-400 font-semibold truncate">{totalStr}</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-1">{group.progressPercentage.toFixed(0)}%</span>
           </div>
-          <div className="w-full h-2.5 bg-slate-200 border border-slate-400 rounded-none overflow-hidden flex">
+          <div className="w-full h-2.5 bg-slate-200 dark:bg-[#1e2738] border border-slate-400 dark:border-[#324057] rounded-none overflow-hidden flex">
             {completedCount === group.tasks.length ? (
-              <div className="w-full h-full bg-[#1a365d]"></div>
+              <div className="w-full h-full bg-[#1a365d] dark:bg-[#204070]"></div>
             ) : (
               <div
-                className="h-full bg-gradient-to-r from-[#1a365d] to-red-600"
+                className="h-full bg-gradient-to-r from-[#1a365d] to-red-600 dark:from-[#254d85] dark:to-red-500 transition-all duration-200"
                 style={{ width: `${group.progressPercentage}%` }}
               ></div>
             )}
@@ -377,8 +382,8 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
 
         {/* Combined Speed & Status summary */}
         <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] min-w-0">
-          <span className="font-bold text-red-600 truncate">{speedStr}</span>
-          <span className="font-semibold text-slate-600 shrink-0 ml-1">
+          <span className="font-bold text-red-600 dark:text-red-400 truncate">{speedStr}</span>
+          <span className="font-semibold text-slate-600 dark:text-slate-400 shrink-0 ml-1">
             {completedCount}/{group.tasks.length} listos
           </span>
         </div>
@@ -386,20 +391,20 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
         {/* Group Status */}
         <div className="text-center min-w-0 truncate">
           {isDownloading ? (
-            <span className="text-blue-700 font-bold flex items-center justify-center gap-1">
+            <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center justify-center gap-1">
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
               Descargando
             </span>
           ) : completedCount === group.tasks.length ? (
-            <span className="text-emerald-700 font-bold">Completado</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">Completado</span>
           ) : isPaused ? (
-            <span className="text-slate-600 font-semibold flex items-center justify-center gap-1">
+            <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-center gap-1">
               <Pause className="w-2.5 h-2.5" /> En Pausa
             </span>
           ) : group.status === 'failed' ? (
-            <span className="text-red-600 font-bold">Error</span>
+            <span className="text-red-600 dark:text-red-400 font-bold">Error</span>
           ) : (
-            <span className="text-slate-600 font-semibold">Pendiente</span>
+            <span className="text-slate-600 dark:text-slate-400 font-semibold">Pendiente</span>
           )}
         </div>
 
@@ -409,7 +414,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={handleGroupPause}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Pausar todas"
             >
               <Pause className="w-3.5 h-3.5" />
@@ -419,7 +424,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={handleGroupResume}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-emerald-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Reanudar todas"
             >
               <Play className="w-3.5 h-3.5" />
@@ -429,7 +434,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             <button
               type="button"
               onClick={handleGroupOpenFolder}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
               title="Abrir carpeta de destino"
             >
               <FolderOpen className="w-3.5 h-3.5" />
@@ -442,7 +447,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                 e.stopPropagation();
                 onInspectTask(group.tasks[0]);
               }}
-              className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 hover:text-blue-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
+              className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
               title="Propiedades y detalles"
             >
               <Info className="w-3.5 h-3.5" />
@@ -451,7 +456,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           <button
             type="button"
             onClick={handleGroupDelete}
-            className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-rose-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+            className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-rose-600 dark:text-rose-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
             title="Eliminar grupo y sus formatos"
           >
             <X className="w-3.5 h-3.5" />
@@ -461,7 +466,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
 
       {/* 2.2 Expanded Tree Children Rows (Windows Explorer Indentation Style) */}
       {isExpanded && (
-        <div className="bg-slate-100/70 border-t border-slate-200 divide-y divide-slate-200/80">
+        <div className="bg-slate-100/70 dark:bg-[#0f1520]/80 border-t border-slate-200 dark:border-[#202b3d] divide-y divide-slate-200/80 dark:divide-[#202b3d]">
           {group.tasks.map((task) => {
             const isTaskSelected = selectedId === task.id;
             const taskSpeedStr =
@@ -492,26 +497,27 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                   'download-grid px-1 text-[11px] transition-colors cursor-pointer select-none',
                   isCompact ? 'py-1' : 'py-1.5',
                   isTaskSelected
-                    ? 'bg-[#e3f0fa] border-l-4 border-l-blue-500'
-                    : 'hover:bg-slate-50 border-l-4 border-l-transparent'
+                    ? 'bg-[#e3f0fa] dark:bg-[#1b3152] border-l-4 border-l-blue-500'
+                    : 'hover:bg-slate-50 dark:hover:bg-[#182130] bg-white/70 dark:bg-[#121926] border-l-4 border-l-transparent'
                 )}
               >
                 {/* Indentation Tree Guide */}
                 <div className="flex items-center justify-end pr-2">
-                  <div className="w-3 h-3 border-l-2 border-b-2 border-slate-400/80 rounded-bl-sm" />
+                  <div className="w-3 h-3 border-l-2 border-b-2 border-slate-400/80 dark:border-slate-600 rounded-bl-sm" />
                 </div>
 
                 {/* Format Tag & File Name */}
                 <div className="flex items-center gap-2 min-w-0 pl-1">
-                  <span className="px-1.5 py-0.2 bg-blue-50 text-blue-900 border border-blue-300 text-[10px] font-mono font-bold shrink-0 uppercase">
+                  <span className="px-1.5 py-0.2 bg-blue-50 dark:bg-[#192b45] text-blue-900 dark:text-blue-300 border border-blue-300 dark:border-blue-600 text-[10px] font-mono font-bold shrink-0 uppercase">
                     {formatLabel}
                   </span>
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="font-semibold text-slate-800 truncate" title={task.file_name}>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={task.file_name}>
                       {task.file_name}
                     </span>
-                    <span className="text-[9px] text-slate-500 truncate">
-                      {taskDownStr} de {taskTotalStr} • {task.segments ? task.segments.length : 1} hilos
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                      {taskDownStr} de {taskTotalStr}
+                      {nerdStats ? ` • ${task.segments ? task.segments.length : 1} hilos` : ''}
                     </span>
                   </div>
                 </div>
@@ -519,17 +525,17 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                 {/* Progress */}
                 <div className="flex flex-col min-w-0 pr-1 sm:pr-2">
                   <div className="flex items-center justify-between mb-0.5 text-[10px]">
-                    <span className="text-slate-600 font-semibold truncate">{taskTotalStr}</span>
-                    <span className="font-bold text-slate-800 shrink-0 ml-1">
+                    <span className="text-slate-600 dark:text-slate-400 font-semibold truncate">{taskTotalStr}</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-1">
                       {task.progress_percentage.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-slate-200 border border-slate-400 rounded-none overflow-hidden flex">
+                  <div className="w-full h-2 bg-slate-200 dark:bg-[#1e2738] border border-slate-400 dark:border-[#324057] rounded-none overflow-hidden flex">
                     {task.status === 'completed' ? (
-                      <div className="w-full h-full bg-[#1a365d]"></div>
+                      <div className="w-full h-full bg-[#1a365d] dark:bg-[#204070]"></div>
                     ) : (
                       <div
-                        className="h-full bg-gradient-to-r from-[#1a365d] to-red-600"
+                        className="h-full bg-gradient-to-r from-[#1a365d] to-red-600 dark:from-[#254d85] dark:to-red-500 transition-all duration-200"
                         style={{ width: `${task.progress_percentage}%` }}
                       ></div>
                     )}
@@ -538,25 +544,25 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
 
                 {/* Speed / ETA */}
                 <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] min-w-0">
-                  <span className="font-bold text-red-600 truncate">{taskSpeedStr}</span>
-                  <span className="font-semibold text-slate-700 shrink-0 ml-1">{taskEtaStr}</span>
+                  <span className="font-bold text-red-600 dark:text-red-400 truncate">{taskSpeedStr}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0 ml-1">{taskEtaStr}</span>
                 </div>
 
                 {/* Status */}
                 <div className="text-center min-w-0 truncate">
                   {task.status === 'downloading' ? (
-                    <span className="text-blue-700 font-bold flex items-center justify-center gap-1">
+                    <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center justify-center gap-1">
                       <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                       Descargando
                     </span>
                   ) : task.status === 'completed' ? (
-                    <span className="text-emerald-700 font-bold">Completado</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">Completado</span>
                   ) : task.status === 'paused' ? (
-                    <span className="text-slate-600 font-semibold flex items-center justify-center gap-1">
+                    <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-center gap-1">
                       <Pause className="w-2.5 h-2.5" /> En Pausa
                     </span>
                   ) : (
-                    <span className="text-red-600 font-bold">Error</span>
+                    <span className="text-red-600 dark:text-red-400 font-bold">Error</span>
                   )}
                 </div>
 
@@ -569,7 +575,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                         e.stopPropagation();
                         onPauseTask(task.id);
                       }}
-                      className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+                      className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
                       title="Pausar"
                     >
                       <Pause className="w-3.5 h-3.5" />
@@ -582,7 +588,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                         e.stopPropagation();
                         onResumeTask(task.id);
                       }}
-                      className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-emerald-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+                      className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
                       title="Reanudar"
                     >
                       <Play className="w-3.5 h-3.5" />
@@ -595,7 +601,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                         e.stopPropagation();
                         onOpenFolder(task.file_path);
                       }}
-                      className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+                      className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
                       title="Abrir carpeta"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
@@ -607,7 +613,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                       e.stopPropagation();
                       onInspectTask(task);
                     }}
-                    className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-slate-700 hover:text-blue-700 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
+                    className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
                     title="Propiedades y detalles"
                   >
                     <Info className="w-3.5 h-3.5" />
@@ -618,7 +624,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                       e.stopPropagation();
                       onCancelTask(task.id, false);
                     }}
-                    className="p-1 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 border border-slate-400 text-rose-600 active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
+                    className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-rose-600 dark:text-rose-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
                     title="Eliminar este formato"
                   >
                     <X className="w-3.5 h-3.5" />
