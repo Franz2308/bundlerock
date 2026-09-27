@@ -539,8 +539,9 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
         </div>
 
         {/* Content Form */}
-        <form onSubmit={handleSubmit} className="p-3 sm:p-4 space-y-3 overflow-y-auto text-xs min-h-0 flex-1 custom-scrollbar">
-          {/* URL Input */}
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1 overflow-hidden">
+          <div className="p-3 sm:p-4 space-y-3.5 overflow-y-auto text-xs flex-1 custom-scrollbar">
+            {/* URL Input */}
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
               Enlace de descarga o video (YouTube, X, Facebook, Reddit o directo):
@@ -1042,7 +1043,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           </div>
 
           {/* Save Directory */}
-          <div className="space-y-1">
+          <div className="space-y-1 pb-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
               Carpeta de destino:
             </label>
@@ -1054,49 +1055,50 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
               className="w-full bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
             />
           </div>
+        </div>
 
-          {/* Buttons Footer */}
-          <div className="sticky bottom-0 bg-slate-100/95 dark:bg-[#141b27]/95 backdrop-blur-xs pt-2.5 pb-0.5 border-t border-slate-300 dark:border-[#202b3d] flex items-center justify-end gap-2 -mx-3 -mb-3 px-3 sm:-mx-4 sm:-mb-4 sm:px-4 z-20">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-1.5 bg-slate-200 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] border border-slate-400 dark:border-[#384761] text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-xs active:bg-slate-300 dark:active:bg-[#32435f] active:shadow-inner cursor-pointer rounded-xs transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={
-                Boolean(
-                  !url.trim() ||
-                  starting ||
-                  (isGalleryMode && selectedImageIndices.size === 0) ||
-                  (media && !isGalleryMode && selectedFormatIds.size === 0)
-                )
-              }
-              className="px-5 py-1.5 bg-[#1a365d] hover:bg-[#152e4d] dark:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-bold shadow-sm active:shadow-inner flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              {starting ? (
-                <Loader2 className="w-4 h-4 animate-spin text-cyan-300" />
-              ) : isGalleryMode ? (
-                <Images className="w-4 h-4 text-cyan-300" />
-              ) : media ? (
-                <Film className="w-4 h-4 text-cyan-300" />
-              ) : (
-                <Download className="w-4 h-4 text-cyan-300" />
-              )}
-              <span>
-                {isGalleryMode
-                  ? `Descargar ${selectedImageIndices.size} ${selectedImageIndices.size === 1 ? 'imagen' : 'imágenes'}`
-                  : media
-                  ? selectedFormatIds.size > 1
-                    ? `Descargar ${selectedFormatIds.size} formatos`
-                    : 'Descargar Video / Audio'
-                  : 'Descargar Ahora'}
-              </span>
-            </button>
-          </div>
-        </form>
+        {/* Buttons Footer (Cleanly separated from scrollable content) */}
+        <div className="px-3 sm:px-4 py-2.5 border-t border-slate-300 dark:border-[#202b3d] bg-slate-200 dark:bg-[#0f1520] flex items-center justify-end gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 bg-slate-100 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] border border-slate-400 dark:border-[#384761] text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-xs active:bg-slate-300 dark:active:bg-[#32435f] active:shadow-inner cursor-pointer rounded-xs transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={
+              Boolean(
+                !url.trim() ||
+                starting ||
+                (isGalleryMode && selectedImageIndices.size === 0) ||
+                (media && !isGalleryMode && selectedFormatIds.size === 0)
+              )
+            }
+            className="px-5 py-1.5 bg-[#1a365d] hover:bg-[#152e4d] dark:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 text-white text-xs font-bold shadow-sm active:shadow-inner flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            {starting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-cyan-300" />
+            ) : isGalleryMode ? (
+              <Images className="w-4 h-4 text-cyan-300" />
+            ) : media ? (
+              <Film className="w-4 h-4 text-cyan-300" />
+            ) : (
+              <Download className="w-4 h-4 text-cyan-300" />
+            )}
+            <span>
+              {isGalleryMode
+                ? `Descargar ${selectedImageIndices.size} ${selectedImageIndices.size === 1 ? 'imagen' : 'imágenes'}`
+                : media
+                ? selectedFormatIds.size > 1
+                  ? `Descargar ${selectedFormatIds.size} formatos`
+                  : 'Descargar Video / Audio'
+                : 'Descargar Ahora'}
+            </span>
+          </button>
+        </div>
+      </form>
       </div>
 
       {/* Multi-Format Warning & Confirmation Modal */}
