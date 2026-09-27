@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
-import { DownloadItem } from './components/DownloadItem';
+import { DownloadGroupRow, DownloadGroupItem } from './components/DownloadGroupRow';
 import { NewDownloadModal } from './components/NewDownloadModal';
 import { TaskDetailsModal } from './components/TaskDetailsModal';
 import { EmptyState } from './components/EmptyState';
 import {
   DownloadTask,
+  DownloadStatus,
   DownloadProgressPayload,
   FileCategory,
   StatusFilter,
@@ -33,12 +34,25 @@ import './App.css';
 export function App() {
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<FileCategory>('all');
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed');
   const [isNewDownloadOpen, setIsNewDownloadOpen] = useState(false);
   const [inspectingTask, setInspectingTask] = useState<DownloadTask | null>(null);
+
+  const toggleGroupExpand = (groupId: string) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
 
   const [isInstallingExtractors, setIsInstallingExtractors] = useState(false);
   const [extractorInstallError, setExtractorInstallError] = useState<string | null>(null);
@@ -115,6 +129,7 @@ export function App() {
               media_duration: payload.media_duration !== undefined ? payload.media_duration : old.media_duration,
               resolution: payload.resolution !== undefined ? payload.resolution : old.resolution,
               is_animated_gif: payload.is_animated_gif !== undefined ? payload.is_animated_gif : old.is_animated_gif,
+              group_id: payload.group_id !== undefined ? payload.group_id : old.group_id,
               updated_at: Date.now(),
             };
             return updated;
@@ -139,6 +154,7 @@ export function App() {
                 media_duration: payload.media_duration !== undefined ? payload.media_duration : prev.media_duration,
                 resolution: payload.resolution !== undefined ? payload.resolution : prev.resolution,
                 is_animated_gif: payload.is_animated_gif !== undefined ? payload.is_animated_gif : prev.is_animated_gif,
+                group_id: payload.group_id !== undefined ? payload.group_id : prev.group_id,
               };
             }
             return prev;
@@ -260,6 +276,131 @@ export function App() {
     return tasks.filter((t) => t.status === 'downloading').length;
   }, [tasks]);
 
+  // Group tasks for expandable tree view (Multi-Format)
+  const taskGroups = useMemo<DownloadGroupItem[]>(() => {
+    const groupMap = new Map<string, DownloadTask[]>();
+    const groupOrder: string[] = [];
+
+    for (const task of filteredTasks) {
+      const key = task.group_id || task.id;
+
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+        groupOrder.push(key);
+      }
+      groupMap.get(key)!.push(task);
+    }
+
+    return groupOrder.map((key) => {
+      const gTasks = groupMap.get(key)!;
+      const isMulti = Boolean(gTasks[0].group_id || gTasks.length > 1);
+
+      let title = gTasks[0].file_name;
+      if (isMulti) {
+        const cleanBase = gTasks[0].file_name
+          .replace(/\s*\[.*?\](\.[^.]*)?$/, '')
+          .replace(/\.[^.]+$/, '');
+        if (cleanBase.trim()) {
+          title = cleanBase.trim();
+        }
+      }
+
+      let totalBytes: number | null = 0;
+      let allHaveTotal = true;
+      let downloadedBytes = 0;
+      let speedBps = 0;
+
+      for (const t of gTasks) {
+        downloadedBytes += t.downloaded_bytes;
+        if (t.total_bytes && t.total_bytes > 0) {
+          totalBytes = (totalBytes || 0) + t.total_bytes;
+        } else {
+          allHaveTotal = false;
+        }
+        if (t.status === 'downloading') {
+          speedBps += t.speed_bps || 0;
+        }
+      }
+      if (!allHaveTotal) {
+        totalBytes = null;
+      }
+
+      let progressPercentage = 0;
+      if (totalBytes && totalBytes > 0) {
+        progressPercentage = Math.min(100, (downloadedBytes / totalBytes) * 100);
+      } else {
+        progressPercentage =
+          gTasks.reduce((sum, t) => sum + (t.progress_percentage || 0), 0) /
+          gTasks.length;
+      }
+
+      let status: DownloadStatus = 'completed';
+      if (gTasks.some((t) => t.status === 'downloading')) {
+        status = 'downloading';
+      } else if (gTasks.some((t) => t.status === 'paused')) {
+        status = 'paused';
+      } else if (gTasks.some((t) => t.status === 'pending' || t.status === 'probing')) {
+        status = 'pending';
+      } else if (gTasks.some((t) => t.status === 'failed')) {
+        status = 'failed';
+      } else if (gTasks.some((t) => t.status === 'cancelled')) {
+        status = 'cancelled';
+      } else if (gTasks.every((t) => t.status === 'completed')) {
+        status = 'completed';
+      }
+
+      const thumbnail =
+        gTasks.find((t) => t.thumbnail_url || t.media_thumbnail)?.thumbnail_url ||
+        gTasks[0].media_thumbnail;
+
+      return {
+        id: key,
+        title,
+        url: gTasks[0].url,
+        thumbnail,
+        tasks: gTasks,
+        isMultiFormat: isMulti,
+        totalBytes,
+        downloadedBytes,
+        speedBps,
+        progressPercentage,
+        status,
+        createdAt: gTasks[0].created_at,
+      };
+    });
+  }, [filteredTasks]);
+
+  // Active selected group reference (if a multi-format group row is selected)
+  const selectedGroup = useMemo(
+    () => taskGroups.find((g) => g.id === selectedTaskId && g.isMultiFormat) || null,
+    [taskGroups, selectedTaskId]
+  );
+
+  // Unified task representation for toolbar buttons
+  const toolbarSelectedTask = useMemo(() => {
+    if (selectedTask) return selectedTask;
+    if (selectedGroup) {
+      const hasDownloading = selectedGroup.tasks.some((t) => t.status === 'downloading');
+      const hasPaused = selectedGroup.tasks.some(
+        (t) => t.status === 'paused' || t.status === 'failed'
+      );
+      const isCompleted = selectedGroup.tasks.every((t) => t.status === 'completed');
+      return {
+        ...selectedGroup.tasks[0],
+        id: selectedGroup.id,
+        file_name: selectedGroup.title,
+        status: hasDownloading
+          ? 'downloading'
+          : hasPaused
+          ? 'paused'
+          : isCompleted
+          ? 'completed'
+          : 'pending',
+      } as DownloadTask;
+    }
+    return null;
+  }, [selectedTask, selectedGroup]);
+
   // Download Actions
   const handleStartDownload = async (params: {
     url: string;
@@ -270,9 +411,13 @@ export function App() {
     resolution?: string;
     thumbnailUrl?: string;
     durationSeconds?: number;
+    groupId?: string;
   }) => {
     const newTask = await startDownload(params);
     setTasks((prev) => [newTask, ...prev.filter((t) => t.id !== newTask.id)]);
+    if (params.groupId) {
+      setExpandedGroupIds((prev) => new Set([...prev, params.groupId!]));
+    }
     // Switch to all or downloading status
     setSelectedStatus('all');
   };
@@ -364,7 +509,13 @@ export function App() {
   };
 
   const handleToolbarPause = async () => {
-    if (selectedTask && selectedTask.status === 'downloading') {
+    if (selectedGroup) {
+      for (const t of selectedGroup.tasks) {
+        if (t.status === 'downloading') {
+          await handlePause(t.id);
+        }
+      }
+    } else if (selectedTask && selectedTask.status === 'downloading') {
       await handlePause(selectedTask.id);
     } else {
       await handlePauseAll();
@@ -372,7 +523,13 @@ export function App() {
   };
 
   const handleToolbarResume = async () => {
-    if (
+    if (selectedGroup) {
+      for (const t of selectedGroup.tasks) {
+        if (t.status === 'paused' || t.status === 'failed') {
+          await handleResume(t.id);
+        }
+      }
+    } else if (
       selectedTask &&
       (selectedTask.status === 'paused' || selectedTask.status === 'failed')
     ) {
@@ -383,7 +540,12 @@ export function App() {
   };
 
   const handleToolbarCancelOrDelete = async () => {
-    if (selectedTask) {
+    if (selectedGroup) {
+      for (const t of selectedGroup.tasks) {
+        await handleCancel(t.id, false);
+      }
+      setSelectedTaskId(null);
+    } else if (selectedTask) {
       await handleCancel(selectedTask.id, false);
       setSelectedTaskId(null);
     } else {
@@ -413,9 +575,7 @@ export function App() {
           <Toolbar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            
-            
-            selectedTask={selectedTask}
+            selectedTask={toolbarSelectedTask}
             onClearSelection={() => setSelectedTaskId(null)}
             totalTasksCount={tasks.length}
             activeDownloadsCount={totalActiveDownloads}
@@ -456,20 +616,22 @@ export function App() {
                   </div>
                 )}
                 <div className="space-y-0.5">
-                  {filteredTasks.map((task, index) => (
-                    <DownloadItem
-                      key={task.id}
-                      task={task}
+                  {taskGroups.map((group, index) => (
+                    <DownloadGroupRow
+                      key={group.id}
+                      group={group}
+                      groupIndex={index + 1}
                       viewMode={viewMode}
-                      index={index + 1}
-                      isSelected={task.id === selectedTaskId}
+                      isExpanded={expandedGroupIds.has(group.id)}
+                      onToggleExpand={toggleGroupExpand}
+                      selectedId={selectedTaskId}
                       onSelect={(id) => setSelectedTaskId((prev) => (prev === id ? null : id))}
-                      onPause={handlePause}
-                      onResume={handleResume}
-                      onCancel={handleCancel}
+                      onPauseTask={handlePause}
+                      onResumeTask={handleResume}
+                      onCancelTask={handleCancel}
                       onOpenFile={openFile}
                       onOpenFolder={openContainingFolder}
-                      onInspect={setInspectingTask}
+                      onInspectTask={setInspectingTask}
                     />
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Layers,
   FolderOpen,
@@ -13,8 +13,8 @@ import {
   PauseCircle,
   CheckCircle2,
   AlertCircle,
-  
-  
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { FileCategory, StatusFilter } from '../types/download';
 
@@ -67,69 +67,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'failed', label: 'Con Errores', icon: AlertCircle, color: 'text-rose-400' },
   ];
 
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+  const [statusOpen, setStatusOpen] = useState(true);
+
   return (
     <aside className="w-56 bg-slate-100 border-r border-slate-300 flex flex-col h-full select-none shrink-0">
       {/* Categories Section */}
       <div className="flex flex-col">
-        <div className="bg-slate-200 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between uppercase">
+        <button
+          type="button"
+          onClick={() => setCategoriesOpen(!categoriesOpen)}
+          className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
+        >
           <span>Transfer Categories</span>
-          <span>⬇</span>
-        </div>
-        <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
-            const isSelected = selectedCategory === cat.id;
-            const count = categoryCounts[cat.id] ?? 0;
+          {categoriesOpen ? (
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5]" />
+          )}
+        </button>
+        {categoriesOpen && (
+          <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              const isSelected = selectedCategory === cat.id;
+              const count = categoryCounts[cat.id] ?? 0;
 
-            return (
-              <button
-                key={cat.id}
-                onClick={() => onSelectCategory(cat.id)}
-                className={cn(
-                  'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
-                  isSelected
-                    ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
-                    : 'text-slate-800 hover:bg-slate-50 border border-transparent'
-                )}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Icon className={cn('w-4 h-4 text-slate-500', isSelected && 'text-blue-600')} />
-                  <span className={cn("truncate text-xs", isSelected && "font-semibold text-blue-900")}>{cat.label}</span>
-                </div>
-                {count > 0 && (
-                  <span className={cn("text-[11px] font-bold", isSelected ? "text-blue-700" : "text-slate-500")}>
-                    ({count})
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => onSelectCategory(cat.id)}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
+                    isSelected
+                      ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
+                      : 'text-slate-800 hover:bg-slate-50 border border-transparent'
+                  )}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Icon className={cn('w-4 h-4 text-slate-500', isSelected && 'text-blue-600')} />
+                    <span className={cn("truncate text-xs", isSelected && "font-semibold text-blue-900")}>{cat.label}</span>
+                  </div>
+                  {count > 0 && (
+                    <span className={cn("text-[11px] font-bold", isSelected ? "text-blue-700" : "text-slate-500")}>
+                      ({count})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Status Filters Section */}
       <div className="flex flex-col mt-2">
-        <div className="bg-slate-200 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between uppercase">
+        <button
+          type="button"
+          onClick={() => setStatusOpen(!statusOpen)}
+          className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
+        >
           <span>Estado / Filtro</span>
-          <span>⬇</span>
-        </div>
-        <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
-          {statuses.map((st) => {
-            const Icon = st.icon;
-            const isSelected = selectedStatus === st.id;
-            const count = statusCounts[st.id] ?? 0;
+          {statusOpen ? (
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5]" />
+          )}
+        </button>
+        {statusOpen && (
+          <div className="bg-white py-1 text-sm border-b border-slate-300 flex-1">
+            {statuses.map((st) => {
+              const Icon = st.icon;
+              const isSelected = selectedStatus === st.id;
+              const count = statusCounts[st.id] ?? 0;
 
-            return (
-              <button
-                key={st.id}
-                onClick={() => onSelectStatus(st.id)}
-                className={cn(
-                  'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
-                  isSelected
-                    ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
-                    : 'text-slate-800 hover:bg-slate-50 border border-transparent'
-                )}
-              >
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => onSelectStatus(st.id)}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
+                    isSelected
+                      ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
+                      : 'text-slate-800 hover:bg-slate-50 border border-transparent'
+                  )}
+                >
                 <div className="flex items-center gap-2 truncate">
                   <Icon
                     className={cn(
@@ -149,7 +171,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </div>
-      </div>
+      )}
+    </div>
 
       {/* Network & Storage Summary Panel (Moved some to bottom bar but keep a tiny box here) */}
       <div className="mt-auto p-2 border-t border-slate-300 bg-slate-100 flex items-center justify-center">

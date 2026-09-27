@@ -19,6 +19,7 @@ export interface StartDownloadParams {
   resolution?: string;
   thumbnailUrl?: string;
   durationSeconds?: number;
+  groupId?: string;
 }
 
 export async function probeUrl(url: string): Promise<ProbeResult> {
@@ -36,6 +37,7 @@ export async function startDownload(params: StartDownloadParams): Promise<Downlo
     resolution: params.resolution,
     thumbnailUrl: params.thumbnailUrl,
     durationSeconds: params.durationSeconds,
+    groupId: params.groupId,
   });
 }
 

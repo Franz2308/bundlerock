@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowDown } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   closeWindow,
@@ -77,8 +78,8 @@ export const TitleBar: React.FC = () => {
       <div
         className="flex items-center gap-2 px-3 h-full cursor-default select-none pointer-events-none"
       >
-        <div className="w-5 h-5 rounded-full border border-white/70 bg-[#244a77] flex items-center justify-center text-xs font-bold text-white shadow-sm pointer-events-none select-none">
-          ↓
+        <div className="w-5 h-5 rounded-full border border-white/70 bg-[#244a77] flex items-center justify-center shadow-sm pointer-events-none select-none">
+          <ArrowDown className="w-3 h-3 text-white stroke-[2.5]" />
         </div>
         <span className="tracking-wide text-xs font-bold uppercase text-white pointer-events-none select-none">
           BundleRock

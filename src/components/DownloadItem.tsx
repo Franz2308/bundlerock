@@ -8,19 +8,8 @@ import {
   File,
   Play,
   Pause,
-  
   FolderOpen,
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  ScanLine,
   X,
 } from 'lucide-react';
 import { DownloadTask, FileCategory } from '../types/download';
@@ -51,7 +40,6 @@ interface DownloadItemProps {
 
 export const DownloadItem: React.FC<DownloadItemProps> = ({
   task,
-  
   index = 1,
   isSelected = false,
   onSelect,
@@ -60,7 +48,7 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
   onCancel,
   onOpenFile,
   onOpenFolder,
-  
+  onInspect,
 }) => {
   
   
@@ -177,11 +165,18 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
           </button>
         )}
         {task.status === 'completed' && (
-          <button onClick={(e) => { e.stopPropagation(); onOpenFolder(task.file_path); }} className="p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 active:shadow-inner" title="Abrir carpeta">
+          <button onClick={(e) => { e.stopPropagation(); onOpenFolder(task.file_path); }} className="p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 active:shadow-inner cursor-pointer" title="Abrir carpeta">
             <FolderOpen className="w-3.5 h-3.5 text-slate-700" />
           </button>
         )}
-        <button onClick={(e) => { e.stopPropagation(); onCancel(task.id, false); }} className="p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-rose-600 active:shadow-inner" title="Eliminar">
+        <button
+          onClick={(e) => { e.stopPropagation(); onInspect(task); }}
+          className="p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 active:shadow-inner cursor-pointer"
+          title="Inspeccionar propiedades y segmentos"
+        >
+          <ScanLine className="w-3.5 h-3.5 text-blue-700" />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onCancel(task.id, false); }} className="p-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-400 text-rose-600 active:shadow-inner cursor-pointer" title="Eliminar">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>

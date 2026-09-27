@@ -63,12 +63,10 @@ impl DownloadManager {
         HashMap::new()
     }
 
-    pub fn new(app_handle: tauri::AppHandle) -> Self {
-        use tauri::Manager;
-        let data_dir = app_handle.path().app_local_data_dir().unwrap_or_else(|_| PathBuf::from("tasks_data"));
-        let _ = std::fs::create_dir_all(&data_dir);
-        let tasks_file = data_dir.join("tasks.json");
-
+    pub fn new_with_path(tasks_file: PathBuf) -> Self {
+        if let Some(parent) = tasks_file.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -80,6 +78,14 @@ impl DownloadManager {
             client,
             tasks_file,
         }
+    }
+
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
+        use tauri::Manager;
+        let data_dir = app_handle.path().app_local_data_dir().unwrap_or_else(|_| PathBuf::from("tasks_data"));
+        let _ = std::fs::create_dir_all(&data_dir);
+        let tasks_file = data_dir.join("tasks.json");
+        Self::new_with_path(tasks_file)
     }
 
     /// Probes a URL to discover size, range support, and filename.
@@ -180,6 +186,7 @@ impl DownloadManager {
         resolution: Option<String>,
         thumbnail_url: Option<String>,
         duration_seconds: Option<u64>,
+        group_id: Option<String>,
         app_handle: Option<tauri::AppHandle>,
     ) -> Result<DownloadTask, String> {
         // Step 1: Probe URL
@@ -250,6 +257,7 @@ impl DownloadManager {
         task.media_thumbnail = thumbnail_url;
         task.duration_seconds = duration_seconds;
         task.media_duration = duration_seconds;
+        task.group_id = group_id;
 
         // Check if multimedia task
         if let Some(media) = probe.media_info {
@@ -911,7 +919,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_manager_task_lifecycle() {
-        let manager = DownloadManager::new();
+        let temp_file = std::env::temp_dir().join(format!("bundlerock_test_{}.json", uuid::Uuid::new_v4()));
+        let manager = DownloadManager::new_with_path(temp_file);
 
         let tasks = manager.list_tasks().await;
         assert!(tasks.is_empty());
@@ -931,7 +940,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_and_clear_tasks() {
-        let manager = DownloadManager::new();
+        let temp_file = std::env::temp_dir().join(format!("bundlerock_test_{}.json", uuid::Uuid::new_v4()));
+        let manager = DownloadManager::new_with_path(temp_file);
 
         // Insert mock tasks directly into manager
         {

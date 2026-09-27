@@ -24,6 +24,7 @@ pub async fn start_download(
     resolution: Option<String>,
     thumbnail_url: Option<String>,
     duration_seconds: Option<u64>,
+    group_id: Option<String>,
     app: AppHandle,
     manager: State<'_, DownloadManager>,
 ) -> Result<DownloadTask, String> {
@@ -38,6 +39,7 @@ pub async fn start_download(
             resolution,
             thumbnail_url,
             duration_seconds,
+            group_id,
             Some(app),
         )
         .await

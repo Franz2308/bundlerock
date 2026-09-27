@@ -165,6 +165,8 @@ pub struct DownloadTask {
     pub stage_message: Option<String>,
     #[serde(default)]
     pub is_animated_gif: bool,
+    #[serde(default)]
+    pub group_id: Option<String>,
 }
 
 impl DownloadTask {
@@ -207,6 +209,7 @@ impl DownloadTask {
             resolution: None,
             stage_message: None,
             is_animated_gif: false,
+            group_id: None,
         }
     }
 
@@ -272,6 +275,8 @@ pub struct DownloadProgressPayload {
     pub stage_message: Option<String>,
     #[serde(default)]
     pub is_animated_gif: bool,
+    #[serde(default)]
+    pub group_id: Option<String>,
 }
 
 impl From<&DownloadTask> for DownloadProgressPayload {
@@ -308,6 +313,7 @@ impl From<&DownloadTask> for DownloadProgressPayload {
             resolution: task.resolution.clone(),
             stage_message: task.stage_message.clone(),
             is_animated_gif: task.is_animated_gif,
+            group_id: task.group_id.clone(),
         }
     }
 }

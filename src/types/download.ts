@@ -91,6 +91,7 @@ export interface DownloadTask {
   resolution?: string | null;
   stage_message?: string | null;
   is_animated_gif?: boolean;
+  group_id?: string | null;
 }
 
 export interface ProbeResult {
@@ -124,6 +125,7 @@ export interface DownloadProgressPayload {
   resolution?: string | null;
   stage_message?: string | null;
   is_animated_gif?: boolean;
+  group_id?: string | null;
 }
 
 export type FileCategory =

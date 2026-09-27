@@ -8,7 +8,7 @@ import {
   Sparkles,
   ClipboardPaste,
   ShieldCheck,
-  Zap,
+  ScanLine,
   Film,
   Clock,
   CheckCircle2,
@@ -17,6 +17,7 @@ import {
   CheckSquare,
   FolderPlus,
   Folder,
+  Check,
 } from 'lucide-react';
 import { ExtractorStatus, MediaFormatOption, ProbeResult } from '../types/download';
 import { formatBytes } from '../utils/formatters';
@@ -28,6 +29,7 @@ import {
   readClipboardText,
 } from '../services/downloadApi';
 import { cn } from '../utils/cn';
+import { MultiFormatConfirmModal } from './MultiFormatConfirmModal';
 
 interface NewDownloadModalProps {
   isOpen: boolean;
@@ -41,6 +43,7 @@ interface NewDownloadModalProps {
     resolution?: string;
     thumbnailUrl?: string;
     durationSeconds?: number;
+    groupId?: string;
   }) => Promise<void>;
 }
 
@@ -71,7 +74,8 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   const [starting, setStarting] = useState(false);
 
   // Multimedia extractor states
-  const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+  const [selectedFormatIds, setSelectedFormatIds] = useState<Set<string>>(new Set());
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [extractorStatus, setExtractorStatus] = useState<ExtractorStatus | null>(null);
   const [installingExtractor, setInstallingExtractor] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
@@ -90,7 +94,8 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       setProbeResult(null);
       setProbeError(null);
       setStarting(false);
-      setSelectedFormatId('');
+      setSelectedFormatIds(new Set());
+      setShowConfirmModal(false);
       setInstallSuccess(false);
       setInstallError(null);
       setSelectedImageIndices(new Set());
@@ -152,7 +157,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       if (res.media_info && res.media_info.formats.length > 0) {
         // Select first format by default
         const defaultFmt = res.media_info.formats[0];
-        setSelectedFormatId(defaultFmt.format_id);
+        setSelectedFormatIds(new Set([defaultFmt.format_id]));
         setConnections(4);
 
         if (res.media_info.is_animated_gif && defaultFmt.ext === 'gif') {
@@ -179,15 +184,38 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     }
   };
 
-  const handleSelectFormat = (fmt: MediaFormatOption) => {
-    setSelectedFormatId(fmt.format_id);
+  const toggleSelectFormat = (fmt: MediaFormatOption) => {
+    setSelectedFormatIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fmt.format_id)) {
+        next.delete(fmt.format_id);
+      } else {
+        next.add(fmt.format_id);
+      }
 
-    // Update extension in filename
-    if (fileName) {
-      const dotIndex = fileName.lastIndexOf('.');
-      const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
-      setFileName(`${baseName}.${fmt.ext}`);
-    }
+      if (next.size === 1) {
+        const remainingId = Array.from(next)[0];
+        const remainingFmt = probeResult?.media_info?.formats.find(
+          (f) => f.format_id === remainingId
+        );
+        if (remainingFmt && fileName) {
+          const dotIndex = fileName.lastIndexOf('.');
+          const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
+          setFileName(`${baseName}.${remainingFmt.ext}`);
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const selectAllFormats = () => {
+    const formats = probeResult?.media_info?.formats || [];
+    setSelectedFormatIds(new Set(formats.map((f) => f.format_id)));
+  };
+
+  const deselectAllFormats = () => {
+    setSelectedFormatIds(new Set());
   };
 
   const toggleSelectImage = (index: number) => {
@@ -327,27 +355,99 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       return;
     }
 
-    // Video / Stream or Direct Download Mode
-    setStarting(true);
-    try {
-      let chosenRes: string | undefined = undefined;
-      if (media && selectedFormatId) {
-        const fmt = media.formats.find((f) => f.format_id === selectedFormatId);
-        if (fmt?.resolution) {
-          chosenRes = fmt.resolution;
+    // Video / Stream Mode
+    if (media && media.formats && media.formats.length > 0) {
+      const selectedFormats = media.formats.filter((f) =>
+        selectedFormatIds.has(f.format_id)
+      );
+
+      if (selectedFormats.length === 0) return;
+
+      if (selectedFormats.length > 1) {
+        const skip =
+          typeof window !== 'undefined' &&
+          localStorage.getItem('bundlerock_skip_multiformat_confirm') === 'true';
+        if (!skip) {
+          setShowConfirmModal(true);
+          return;
         }
       }
 
-      await onStartDownload({
-        url: url.trim(),
-        destinationPath: savePath.trim() || undefined,
-        fileName: fileName.trim() || undefined,
-        connections: connections || 4,
-        formatId: selectedFormatId || undefined,
-        resolution: chosenRes,
-        thumbnailUrl: media?.thumbnail_url || undefined,
-        durationSeconds: media?.duration_seconds || undefined,
-      });
+      await executeVideoDownloads(selectedFormats);
+      return;
+    }
+
+    // Standard Direct File Download Mode
+    await executeVideoDownloads([]);
+  };
+
+  const executeVideoDownloads = async (formatsToDownload: MediaFormatOption[]) => {
+    setStarting(true);
+    try {
+      const media = probeResult?.media_info;
+      const userChosen = fileName.trim();
+      const rawTitle = (userChosen || media?.title || 'video')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+        .replace(/\s+/g, ' ')
+        .replace(/_+/g, '_')
+        .trim()
+        .replace(/[. ]+$/, '');
+
+      const dotIdx = rawTitle.lastIndexOf('.');
+      const baseStem = (dotIdx !== -1 ? rawTitle.substring(0, dotIdx) : rawTitle) || 'video';
+
+      if (formatsToDownload.length > 1) {
+        const groupId = `group_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const usedFileNames = new Set<string>();
+
+        for (const fmt of formatsToDownload) {
+          const cleanTag = (fmt.quality_label || fmt.ext).replace(/[<>:"/\\|?*]/g, '_').trim();
+          let variantFileName = `${baseStem} [${cleanTag}].${fmt.ext}`;
+          if (usedFileNames.has(variantFileName.toLowerCase())) {
+            variantFileName = `${baseStem} [${cleanTag}_${fmt.format_id}].${fmt.ext}`;
+          }
+          usedFileNames.add(variantFileName.toLowerCase());
+
+          await onStartDownload({
+            url: url.trim(),
+            destinationPath: savePath.trim() || undefined,
+            fileName: variantFileName,
+            connections: connections || 4,
+            formatId: fmt.format_id,
+            resolution: fmt.resolution || undefined,
+            thumbnailUrl: media?.thumbnail_url || undefined,
+            durationSeconds: media?.duration_seconds || undefined,
+            groupId,
+          });
+        }
+      } else if (formatsToDownload.length === 1) {
+        const fmt = formatsToDownload[0];
+        let chosenName = fileName.trim() || undefined;
+        if (!chosenName) {
+          chosenName = `${baseStem}.${fmt.ext}`;
+        }
+        await onStartDownload({
+          url: url.trim(),
+          destinationPath: savePath.trim() || undefined,
+          fileName: chosenName,
+          connections: connections || 4,
+          formatId: fmt.format_id,
+          resolution: fmt.resolution || undefined,
+          thumbnailUrl: media?.thumbnail_url || undefined,
+          durationSeconds: media?.duration_seconds || undefined,
+        });
+      } else {
+        await onStartDownload({
+          url: url.trim(),
+          destinationPath: savePath.trim() || undefined,
+          fileName: fileName.trim() || undefined,
+          connections: connections || 4,
+        });
+      }
+
+      setShowConfirmModal(false);
       onClose();
     } catch (err: unknown) {
       const message =
@@ -360,6 +460,22 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     } finally {
       setStarting(false);
     }
+  };
+
+  const handleConfirmMultiDownload = (dontShowAgain: boolean) => {
+    if (starting) return;
+    if (dontShowAgain) {
+      try {
+        localStorage.setItem('bundlerock_skip_multiformat_confirm', 'true');
+      } catch (e) {
+        console.warn('Failed to save to localStorage:', e);
+      }
+    }
+    const media = probeResult?.media_info;
+    const selectedFormats = media
+      ? media.formats.filter((f) => selectedFormatIds.has(f.format_id))
+      : [];
+    executeVideoDownloads(selectedFormats);
   };
 
   if (!isOpen) return null;
@@ -410,7 +526,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
         {/* Classic Win32 Dialog Header */}
         <div className="px-3 py-1.5 border-b border-slate-300 flex items-center justify-between bg-[#1a365d] text-white shrink-0">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-cyan-300" />
+            <Layers className="w-4 h-4 text-cyan-300" />
             <h2 className="text-xs font-bold uppercase tracking-wide">
               Nueva Descarga
             </h2>
@@ -458,7 +574,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 {probing ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                 ) : (
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <ScanLine className="w-3.5 h-3.5 text-blue-600" />
                 )}
                 <span>Inspeccionar</span>
               </button>
@@ -716,38 +832,69 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 </div>
               )}
 
-              {/* VIDEO FORMAT SELECTION */}
+              {/* VIDEO FORMAT SELECTION (MULTI-SELECT) */}
               {!isGalleryMode && (
                 <div className="space-y-1.5 pt-2 border-t border-slate-300">
-                  <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
-                    <span>Seleccionar Calidad y Formato:</span>
-                    <span className="text-[11px] text-blue-700 font-mono font-semibold">
-                      {media.formats.length} opciones disponibles
-                    </span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Seleccionar Calidades y Formatos:</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-blue-700 font-mono font-semibold mr-1">
+                        {selectedFormatIds.size} de {media.formats.length} seleccionados
+                      </span>
+                      <button
+                        type="button"
+                        onClick={selectAllFormats}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-blue-800 border border-slate-400 cursor-pointer shadow-sm active:bg-slate-300"
+                      >
+                        Seleccionar todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={deselectAllFormats}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-400 cursor-pointer shadow-sm active:bg-slate-300"
+                      >
+                        Deseleccionar
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5">
                     {media.formats.map((fmt) => {
-                      const isSelected = selectedFormatId === fmt.format_id;
+                      const isSelected = selectedFormatIds.has(fmt.format_id);
                       return (
                         <button
                           type="button"
                           key={fmt.format_id}
-                          onClick={() => handleSelectFormat(fmt)}
+                          onClick={() => toggleSelectFormat(fmt)}
                           className={cn(
-                            'p-1.5 text-left border transition-all cursor-pointer flex flex-col justify-between gap-1',
+                            'p-2 text-left border transition-all cursor-pointer flex flex-col justify-between gap-1.5',
                             isSelected
-                              ? 'bg-[#cce8ff] border-blue-500 text-blue-900 shadow-sm'
+                              ? 'bg-[#cce8ff] border-blue-600 text-blue-950 font-medium shadow-sm ring-1 ring-blue-500/50'
                               : 'bg-slate-50 border-slate-300 hover:bg-slate-100 text-slate-800'
                           )}
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-xs font-bold truncate">
-                              {fmt.quality_label}
-                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div
+                                className={cn(
+                                  'w-3.5 h-3.5 border flex items-center justify-center transition-all shrink-0',
+                                  isSelected
+                                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                    : 'bg-white border-slate-400 text-transparent'
+                                )}
+                              >
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              </div>
+                              <span className="text-xs font-bold truncate">
+                                {fmt.quality_label}
+                              </span>
+                            </div>
                             <span
                               className={cn(
-                                'text-[9px] font-mono px-1 py-0.2 uppercase border font-semibold',
+                                'text-[9px] font-mono px-1 py-0.2 uppercase border font-semibold shrink-0',
                                 fmt.is_audio_only
                                   ? 'bg-pink-100 text-pink-800 border-pink-300'
                                   : 'bg-slate-200 text-slate-800 border-slate-300'
@@ -757,7 +904,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono">
+                          <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono pl-5">
                             <span>
                               {fmt.resolution || (fmt.is_audio_only ? 'Audio' : 'Video')}
                             </span>
@@ -976,9 +1123,12 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             <button
               type="submit"
               disabled={
-                !url.trim() ||
-                starting ||
-                (isGalleryMode && selectedImageIndices.size === 0)
+                Boolean(
+                  !url.trim() ||
+                  starting ||
+                  (isGalleryMode && selectedImageIndices.size === 0) ||
+                  (media && !isGalleryMode && selectedFormatIds.size === 0)
+                )
               }
               className="px-5 py-1.5 bg-[#1a365d] hover:bg-[#152e4d] disabled:opacity-50 text-white text-xs font-bold shadow-sm active:shadow-inner flex items-center gap-1.5 cursor-pointer"
             >
@@ -995,13 +1145,35 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 {isGalleryMode
                   ? `Descargar ${selectedImageIndices.size} ${selectedImageIndices.size === 1 ? 'imagen' : 'imágenes'}`
                   : media
-                  ? 'Descargar Video / Audio'
+                  ? selectedFormatIds.size > 1
+                    ? `Descargar ${selectedFormatIds.size} formatos`
+                    : 'Descargar Video / Audio'
                   : 'Descargar Ahora'}
               </span>
             </button>
           </div>
         </form>
       </div>
+
+      {/* Multi-Format Warning & Confirmation Modal */}
+      <MultiFormatConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => !starting && setShowConfirmModal(false)}
+        onConfirm={handleConfirmMultiDownload}
+        isStarting={starting}
+        selectedFormats={
+          media
+            ? media.formats.filter((f) => selectedFormatIds.has(f.format_id))
+            : []
+        }
+        fileNameBase={
+          (fileName.trim() || media?.title || 'archivo')
+            .replace(/https?:\/\/\S+/g, '')
+            .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+            .replace(/\.[^/.]+$/, '')
+            .trim() || 'archivo'
+        }
+      />
     </div>
   );
 };
