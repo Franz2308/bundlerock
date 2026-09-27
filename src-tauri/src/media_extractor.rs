@@ -374,17 +374,17 @@ pub async fn install_ytdlp(_client: &reqwest::Client) -> Result<String, String> 
     // Download FFmpeg
     #[cfg(windows)]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/win32-x64",
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-win32-x64",
         "ffmpeg.exe",
     );
     #[cfg(target_os = "macos")]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/darwin-x64",
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-darwin-x64",
         "ffmpeg",
     );
     #[cfg(all(not(windows), not(target_os = "macos")))]
     let (ff_url, ff_filename) = (
-        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/linux-x64",
+        "https://github.com/eugeneware/ffmpeg-static/releases/latest/download/ffmpeg-linux-x64",
         "ffmpeg",
     );
 
