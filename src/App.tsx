@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { DownloadItem } from './components/DownloadItem';
@@ -22,6 +23,8 @@ import {
   openContainingFolder,
   onDownloadProgress,
   onDownloadFinished,
+  checkExtractorStatus,
+  installExtractor,
 } from './services/downloadApi';
 import { TitleBar } from './components/TitleBar';
 import { getFileCategory, formatSpeed } from './utils/formatters';
@@ -36,6 +39,27 @@ export function App() {
   const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('detailed');
   const [isNewDownloadOpen, setIsNewDownloadOpen] = useState(false);
   const [inspectingTask, setInspectingTask] = useState<DownloadTask | null>(null);
+
+  const [isInstallingExtractors, setIsInstallingExtractors] = useState(false);
+  const [extractorInstallError, setExtractorInstallError] = useState<string | null>(null);
+
+  // Auto-install extractors silently on mount
+  useEffect(() => {
+    const initExtractors = async () => {
+      try {
+        const status = await checkExtractorStatus();
+        if (!status.ytdlp_installed || !status.ffmpeg_installed) {
+          setIsInstallingExtractors(true);
+          await installExtractor();
+        }
+      } catch (err) {
+        setExtractorInstallError(String(err));
+      } finally {
+        setIsInstallingExtractors(false);
+      }
+    };
+    initExtractors();
+  }, []);
 
   // Active selected task reference
   const selectedTask = useMemo(
@@ -454,13 +478,25 @@ export function App() {
           </main>
           
           {/* Status Bar */}
-          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center px-3 text-[11px] text-slate-700 shrink-0">
+          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center justify-between px-3 text-[11px] text-slate-700 shrink-0">
             <span>
               Velocidad Global:{' '}
               <b className="text-red-600 font-mono font-bold">
                 {formatSpeed(totalSpeedBps)}
               </b>
             </span>
+            {isInstallingExtractors && (
+              <span className="flex items-center gap-1.5 text-blue-700 font-medium">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Descargando motor multimedia y dependencias... (1ra vez)
+              </span>
+            )}
+            {extractorInstallError && (
+              <span className="flex items-center gap-1.5 text-red-600 font-medium" title={extractorInstallError}>
+                <AlertTriangle className="w-3 h-3" />
+                Error descargando motor multimedia
+              </span>
+            )}
           </div>
         </div>
       </div>
