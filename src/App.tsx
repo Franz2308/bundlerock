@@ -590,11 +590,9 @@ export function App() {
             onClearCompleted={handleClearCompleted}
           />
 
-          <main className="flex-1 overflow-y-auto p-2 bg-white m-1 border border-slate-300 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] custom-scrollbar">
+          <main className="flex-1 overflow-auto p-2 bg-white m-1 border border-slate-300 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.05)] custom-scrollbar">
             {filteredTasks.length === 0 ? (
               <EmptyState selectedCategory={selectedCategory} selectedStatus={selectedStatus}
-                
-                
                 searchQuery={searchQuery}
                 onOpenNewDownload={() => setIsNewDownloadOpen(true)}
                 onResetFilters={() => {
@@ -604,15 +602,15 @@ export function App() {
                 }}
               />
             ) : (
-              <div className="w-full h-full">
+              <div className="w-full h-full min-w-[690px]">
                 {viewMode === 'detailed' && (
-                  <div className="grid grid-cols-12 gap-2 bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1">
-                    <div className="col-span-1 text-center">#</div>
-                    <div className="col-span-5">Nombre de Archivo / Origen</div>
-                    <div className="col-span-2">Tamaño / Progreso</div>
-                    <div className="col-span-2 text-center">Velocidad / ETA</div>
-                    <div className="col-span-1 text-center">Estado</div>
-                    <div className="col-span-1 text-center">Acción</div>
+                  <div className="download-grid bg-slate-200 border-b border-slate-300 p-1 text-xs font-semibold text-slate-700 sticky top-0 z-10 mb-1 select-none">
+                    <div className="text-center font-bold">#</div>
+                    <div className="min-w-0">Nombre de Archivo / Origen</div>
+                    <div className="min-w-0">Tamaño / Progreso</div>
+                    <div className="min-w-0 text-center">Velocidad / ETA</div>
+                    <div className="min-w-0 text-center">Estado</div>
+                    <div className="min-w-0 text-center">Acción</div>
                   </div>
                 )}
                 <div className="space-y-0.5">
@@ -640,23 +638,23 @@ export function App() {
           </main>
           
           {/* Status Bar */}
-          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center justify-between px-3 text-[11px] text-slate-700 shrink-0">
-            <span>
+          <div className="h-6 bg-slate-200 border-t border-slate-300 flex items-center justify-between px-3 text-[11px] text-slate-700 shrink-0 gap-2 min-w-0">
+            <span className="shrink-0">
               Velocidad Global:{' '}
               <b className="text-red-600 font-mono font-bold">
                 {formatSpeed(totalSpeedBps)}
               </b>
             </span>
             {isInstallingExtractors && (
-              <span className="flex items-center gap-1.5 text-blue-700 font-medium">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Descargando motor multimedia y dependencias... (1ra vez)
+              <span className="flex items-center gap-1.5 text-blue-700 font-medium truncate min-w-0">
+                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                <span className="truncate">Descargando motor multimedia y dependencias... (1ra vez)</span>
               </span>
             )}
             {extractorInstallError && (
-              <span className="flex items-center gap-1.5 text-red-600 font-medium" title={extractorInstallError}>
-                <AlertTriangle className="w-3 h-3" />
-                Error descargando motor multimedia
+              <span className="flex items-center gap-1.5 text-red-600 font-medium truncate min-w-0" title={extractorInstallError}>
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+                <span className="truncate">Error descargando motor multimedia</span>
               </span>
             )}
           </div>

@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [statusOpen, setStatusOpen] = useState(true);
 
   return (
-    <aside className="w-56 bg-slate-100 border-r border-slate-300 flex flex-col h-full select-none shrink-0">
+    <aside className="w-44 sm:w-48 lg:w-56 bg-slate-100 border-r border-slate-300 flex flex-col h-full select-none shrink-0 transition-[width] duration-150">
       {/* Categories Section */}
       <div className="flex flex-col">
         <button
@@ -79,11 +79,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setCategoriesOpen(!categoriesOpen)}
           className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
-          <span>Transfer Categories</span>
+          <span className="truncate">Categorías</span>
           {categoriesOpen ? (
-            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5] shrink-0" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5]" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5] shrink-0" />
           )}
         </button>
         {categoriesOpen && (
@@ -98,18 +98,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={cat.id}
                   onClick={() => onSelectCategory(cat.id)}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
+                    'w-full flex items-center justify-between px-2 sm:px-3 py-1 cursor-pointer min-w-0',
                     isSelected
                       ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
                       : 'text-slate-800 hover:bg-slate-50 border border-transparent'
                   )}
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <Icon className={cn('w-4 h-4 text-slate-500', isSelected && 'text-blue-600')} />
-                    <span className={cn("truncate text-xs", isSelected && "font-semibold text-blue-900")}>{cat.label}</span>
+                  <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                    <Icon className={cn('w-4 h-4 shrink-0 text-slate-500', isSelected && 'text-blue-600')} />
+                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900")} title={cat.label}>
+                      {cat.label}
+                    </span>
                   </div>
                   {count > 0 && (
-                    <span className={cn("text-[11px] font-bold", isSelected ? "text-blue-700" : "text-slate-500")}>
+                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700" : "text-slate-500")}>
                       ({count})
                     </span>
                   )}
@@ -127,11 +129,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setStatusOpen(!statusOpen)}
           className="bg-slate-200 hover:bg-slate-300/80 border-y border-slate-300 p-1 px-2 font-semibold text-xs text-slate-700 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
-          <span>Estado / Filtro</span>
+          <span className="truncate">Estado / Filtro</span>
           {statusOpen ? (
-            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+            <ChevronDown className="w-3.5 h-3.5 text-blue-600 stroke-[2.5] shrink-0" />
           ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5]" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 stroke-[2.5] shrink-0" />
           )}
         </button>
         {statusOpen && (
@@ -146,33 +148,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={st.id}
                   onClick={() => onSelectStatus(st.id)}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-1 cursor-pointer',
+                    'w-full flex items-center justify-between px-2 sm:px-3 py-1 cursor-pointer min-w-0',
                     isSelected
                       ? 'bg-[#e3f0fa] border border-[#a6c8ff] -my-[1px] relative z-10'
                       : 'text-slate-800 hover:bg-slate-50 border border-transparent'
                   )}
                 >
-                <div className="flex items-center gap-2 truncate">
-                  <Icon
-                    className={cn(
-                      'w-4 h-4',
-                      isSelected ? 'text-blue-600' : 'text-slate-500',
-                      st.id === 'downloading' && count > 0 && 'animate-spin'
-                    )}
-                  />
-                  <span className={cn("truncate text-xs", isSelected && "font-semibold text-blue-900")}>{st.label}</span>
-                </div>
-                {count > 0 && (
-                  <span className={cn("text-[11px] font-bold", isSelected ? "text-blue-700" : "text-slate-500")}>
-                    ({count})
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                  <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                    <Icon
+                      className={cn(
+                        'w-4 h-4 shrink-0',
+                        isSelected ? 'text-blue-600' : 'text-slate-500',
+                        st.id === 'downloading' && count > 0 && 'animate-spin'
+                      )}
+                    />
+                    <span className={cn("truncate text-xs flex-1 text-left", isSelected && "font-semibold text-blue-900")} title={st.label}>
+                      {st.label}
+                    </span>
+                  </div>
+                  {count > 0 && (
+                    <span className={cn("text-[11px] font-bold shrink-0 ml-1.5", isSelected ? "text-blue-700" : "text-slate-500")}>
+                      ({count})
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Network & Storage Summary Panel (Moved some to bottom bar but keep a tiny box here) */}
       <div className="mt-auto p-2 border-t border-slate-300 bg-slate-100 flex items-center justify-center">

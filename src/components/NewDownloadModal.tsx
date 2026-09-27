@@ -8,7 +8,7 @@ import {
   Sparkles,
   ClipboardPaste,
   ShieldCheck,
-  ScanLine,
+  Search,
   Film,
   Clock,
   CheckCircle2,
@@ -521,8 +521,8 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
-      <div className="relative w-full max-w-xl bg-slate-100 border border-slate-400 shadow-2xl text-slate-800 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-[1px]">
+      <div className="relative w-full max-w-xl bg-slate-100 border border-slate-400 shadow-2xl text-slate-800 flex flex-col max-h-[88vh] my-auto">
         {/* Classic Win32 Dialog Header */}
         <div className="px-3 py-1.5 border-b border-slate-300 flex items-center justify-between bg-[#1a365d] text-white shrink-0">
           <div className="flex items-center gap-2">
@@ -532,6 +532,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-0.5 hover:bg-red-600 text-white transition-colors cursor-pointer"
             title="Cerrar"
@@ -541,7 +542,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
         </div>
 
         {/* Content Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto text-xs">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 space-y-3 overflow-y-auto text-xs min-h-0 flex-1 custom-scrollbar">
           {/* URL Input */}
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700">
@@ -569,12 +570,13 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 type="button"
                 onClick={() => handleProbe(url)}
                 disabled={!url.trim() || probing}
-                className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 border border-slate-400 text-slate-800 text-xs shadow-sm active:shadow-inner flex items-center gap-1 cursor-pointer shrink-0 font-medium"
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 hover:border-slate-500 disabled:opacity-50 border border-slate-400 text-slate-800 text-xs shadow-xs active:shadow-inner active:bg-slate-300 flex items-center gap-1.5 cursor-pointer shrink-0 font-medium transition-colors rounded-xs"
+                title="Inspeccionar enlace y detectar formatos disponibles"
               >
                 {probing ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                 ) : (
-                  <ScanLine className="w-3.5 h-3.5 text-blue-600" />
+                  <Search className="w-3.5 h-3.5 text-blue-700" />
                 )}
                 <span>Inspeccionar</span>
               </button>
@@ -1112,11 +1114,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           </div>
 
           {/* Buttons Footer */}
-          <div className="pt-2 border-t border-slate-300 flex items-center justify-end gap-2">
+          <div className="sticky bottom-0 bg-slate-100/95 backdrop-blur-xs pt-2.5 pb-0.5 border-t border-slate-300 flex items-center justify-end gap-2 -mx-3 -mb-3 px-3 sm:-mx-4 sm:-mb-4 sm:px-4 z-20">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 text-xs font-semibold shadow-sm active:bg-slate-300 active:shadow-inner cursor-pointer"
+              className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 border border-slate-400 text-slate-800 text-xs font-semibold shadow-xs active:bg-slate-300 active:shadow-inner cursor-pointer rounded-xs"
             >
               Cancelar
             </button>
