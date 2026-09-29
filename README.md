@@ -136,7 +136,7 @@ npm run tauri build
 
 Final executables and installers will be generated at:
 * **Portable Executable:** `src-tauri/target/release/bundlerock.exe`
-* **NSIS Installer:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.1_x64-setup.exe`
+* **NSIS Installer:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.2_x64-setup.exe`
 
 ---
 
