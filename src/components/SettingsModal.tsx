@@ -7,13 +7,15 @@ import {
   Cpu,
   Layers,
   Network,
+  Languages,
   Check,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
   Download,
 } from 'lucide-react';
-import { AppSettings, DEFAULT_SETTINGS } from '../types/settings';
+import { AppSettings, DEFAULT_SETTINGS, Language } from '../types/settings';
+import { useTranslation } from '../i18n';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,7 +38,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   isInstallingDeps = false,
   onInstallDependencies,
 }) => {
-  const [activeTab, setActiveTab] = useState<'appearance' | 'interface' | 'network' | 'about'>('appearance');
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'appearance' | 'language' | 'interface' | 'network' | 'about'>('appearance');
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
 
   useEffect(() => {
@@ -66,7 +69,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleReset = () => {
-    setTempSettings(DEFAULT_SETTINGS);
+    const defaults = { ...DEFAULT_SETTINGS };
+    setTempSettings(defaults);
+    onSaveSettings(defaults);
+  };
+
+  const handleLanguageSelect = (newLang: Language) => {
+    const updated = { ...tempSettings, language: newLang };
+    setTempSettings(updated);
+    onSaveSettings(updated);
   };
 
   return (
@@ -78,14 +89,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-cyan-300" />
             <h3 className="text-xs font-bold uppercase tracking-wide">
-              Configuración de BundleRock
+              {t('settings.title')}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-1 hover:bg-red-600 rounded-none transition-colors text-white cursor-pointer"
-            title="Cerrar (Esc)"
+            title={t('settings.close')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -105,7 +116,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }`}
             >
               <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>Apariencia</span>
+              <span>{t('settings.tabAppearance')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('language')}
+              className={`flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-colors cursor-pointer border ${
+                activeTab === 'language'
+                  ? 'bg-white dark:bg-[#1a2332] text-blue-900 dark:text-blue-300 font-bold border-slate-400 dark:border-blue-700 shadow-2xs'
+                  : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-[#151c28]'
+              }`}
+            >
+              <Languages className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+              <span>{t('settings.tabLanguage')}</span>
             </button>
 
             <button
@@ -118,7 +142,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }`}
             >
               <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span>Diagnóstico UI</span>
+              <span>{t('settings.tabInterface')}</span>
             </button>
 
             <button
@@ -131,7 +155,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }`}
             >
               <Network className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>Red y Motores</span>
+              <span>{t('settings.tabNetwork')}</span>
             </button>
 
             <button
@@ -144,7 +168,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-              <span>Acerca de</span>
+              <span>{t('settings.tabAbout')}</span>
             </button>
           </div>
 
@@ -155,10 +179,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-1">
-                    Tema del Gestor
+                    {t('settings.themeTitle')}
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
-                    Seleccione el esquema de color visual para la interfaz. Ambos temas mantienen la identidad Win32 retro.
+                    {t('settings.themeDesc')}
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -175,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <div className="flex items-center gap-1.5">
                           <Sun className="w-4 h-4 text-amber-500" />
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            Modo Claro
+                            {t('settings.lightMode')}
                           </span>
                         </div>
                         {tempSettings.theme === 'light' && (
@@ -183,7 +207,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         )}
                       </div>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Estilo clásico IDM empresarial con fondo gris pizarra y superficies claras.
+                        {t('settings.lightModeDesc')}
                       </p>
                     </div>
 
@@ -200,7 +224,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <div className="flex items-center gap-1.5">
                           <Moon className="w-4 h-4 text-indigo-500" />
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            Modo Oscuro
+                            {t('settings.darkMode')}
                           </span>
                         </div>
                         {tempSettings.theme === 'dark' && (
@@ -208,7 +232,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         )}
                       </div>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                        Paleta nocturna con tonos azul grisáceo (#101520), alto contraste y menor fatiga ocular.
+                        {t('settings.darkModeDesc')}
                       </p>
                     </div>
                   </div>
@@ -216,15 +240,81 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* Tab 2: Diagnóstico e Información de Interfaz */}
+            {/* Tab 2: Idioma / Language */}
+            {activeTab === 'language' && (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-1">
+                    {t('settings.languageTitle')}
+                  </h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
+                    {t('settings.languageDesc')}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* English Option */}
+                    <div
+                      onClick={() => handleLanguageSelect('en')}
+                      className={`p-3 border cursor-pointer transition-all flex flex-col justify-between ${
+                        tempSettings.language === 'en'
+                          ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-900/20 ring-1 ring-blue-500'
+                          : 'border-slate-300 dark:border-[#2a3649] bg-white dark:bg-[#17202f] hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Languages className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {t('settings.langEnglish')}
+                          </span>
+                        </div>
+                        {tempSettings.language === 'en' && (
+                          <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 font-bold" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {t('settings.langEnglishDesc')}
+                      </p>
+                    </div>
+
+                    {/* Spanish Option */}
+                    <div
+                      onClick={() => handleLanguageSelect('es')}
+                      className={`p-3 border cursor-pointer transition-all flex flex-col justify-between ${
+                        tempSettings.language === 'es'
+                          ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-900/20 ring-1 ring-blue-500'
+                          : 'border-slate-300 dark:border-[#2a3649] bg-white dark:bg-[#17202f] hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Languages className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {t('settings.langSpanish')}
+                          </span>
+                        </div>
+                        {tempSettings.language === 'es' && (
+                          <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 font-bold" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {t('settings.langSpanishDesc')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: Diagnóstico e Información de Interfaz */}
             {activeTab === 'interface' && (
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-1">
-                    Nivel de Información Técnica
+                    {t('settings.nerdStatsTitle')}
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
-                    Controle qué volumen de datos técnicos y métricas de depuración se presentan en las listas de descargas.
+                    {t('settings.nerdStatsDesc')}
                   </p>
 
                   <div className="p-3 bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649] space-y-3">
@@ -237,25 +327,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       />
                       <div className="flex-1">
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                          Activar Estadísticas Avanzadas (Estadísticas para Nerds)
+                          {t('settings.nerdStatsCheck')}
                         </span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 leading-relaxed">
-                          Muestra métricas detalladas en tiempo real: número de hilos activos, rangos de bytes por conexión, soporte multihilo de servidor y tabla de inspección de segmentos.
+                          {t('settings.nerdStatsCheckDesc')}
                         </span>
                       </div>
                     </label>
 
                     <div className="border-t border-slate-200 dark:border-[#232f42] pt-2.5 text-[11px] text-slate-600 dark:text-slate-400">
                       <div className="font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Estado actual:
+                        {t('settings.nerdStatsCurrent')}
                       </div>
                       {tempSettings.nerdStats ? (
                         <div className="text-blue-700 dark:text-blue-400 font-medium">
-                          Modo Avanzado activo: Se muestran hilos, cabeceras HTTP y estructura de chunks.
+                          {t('settings.nerdStatsActive')}
                         </div>
                       ) : (
                         <div className="text-emerald-700 dark:text-emerald-400 font-medium">
-                          Modo Minimalista activo (Recomendado): Interfaz limpia enfocada únicamente en el avance y velocidad de descarga.
+                          {t('settings.nerdStatsInactive')}
                         </div>
                       )}
                     </div>
@@ -264,15 +354,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* Tab 3: Red y Motores */}
+            {/* Tab 4: Red y Motores */}
             {activeTab === 'network' && (
               <div className="space-y-4">
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-1">
-                    Concurrencia de Conexiones
+                    {t('settings.connectionsTitle')}
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
-                    Número de hilos paralelos predeterminado sugerido al iniciar una nueva descarga directa o stream multimedia.
+                    {t('settings.connectionsDesc')}
                   </p>
 
                   <div className="grid grid-cols-4 gap-2">
@@ -287,7 +377,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             : 'bg-white dark:bg-[#17202f] border-slate-300 dark:border-[#2a3649] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1f2b3e]'
                         }`}
                       >
-                        {num} hilos
+                        {t('settings.threads', { count: num })}
                       </button>
                     ))}
                   </div>
@@ -295,7 +385,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <div className="pt-2 border-t border-slate-200 dark:border-[#232f42]">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide mb-2">
-                    Motores Multimedia Embebidos
+                    {t('settings.embeddedEngines')}
                   </h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-2 bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649] text-xs">
@@ -305,10 +395,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         ) : (
                           <AlertCircle className="w-4 h-4 text-amber-500" />
                         )}
-                        <span className="font-semibold">yt-dlp (Extractor de streams)</span>
+                        <span className="font-semibold">{t('settings.ytdlpTitle')}</span>
                       </div>
                       <span className={`text-[11px] font-bold ${ytdlpInstalled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                        {ytdlpInstalled ? 'Disponible' : 'No instalado'}
+                        {ytdlpInstalled ? t('settings.available') : t('settings.notInstalled')}
                       </span>
                     </div>
 
@@ -319,10 +409,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         ) : (
                           <AlertCircle className="w-4 h-4 text-amber-500" />
                         )}
-                        <span className="font-semibold">FFmpeg (Remuxer y conversor GIF)</span>
+                        <span className="font-semibold">{t('settings.ffmpegTitle')}</span>
                       </div>
                       <span className={`text-[11px] font-bold ${ffmpegInstalled ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600'}`}>
-                        {ffmpegInstalled ? 'Disponible' : 'No instalado'}
+                        {ffmpegInstalled ? t('settings.available') : t('settings.notInstalled')}
                       </span>
                     </div>
 
@@ -334,7 +424,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className="w-full mt-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold border border-blue-800 flex items-center justify-center gap-2 cursor-pointer transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>{isInstallingDeps ? 'Instalando componentes...' : 'Instalar dependencias faltantes automáticamente'}</span>
+                        <span>{isInstallingDeps ? t('settings.installingDeps') : t('settings.installDepsBtn')}</span>
                       </button>
                     )}
                   </div>
@@ -342,21 +432,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* Tab 4: Acerca de */}
+            {/* Tab 5: Acerca de */}
             {activeTab === 'about' && (
               <div className="space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
                 <div className="p-3 bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649]">
                   <div className="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                    BundleRock
+                    {t('settings.aboutTitle')}
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-                    Versión 0.2.0 (Alpha Release)
+                    {t('settings.aboutVersion')}
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-2">
-                    Gestor de descargas acelerado multihilo de alta velocidad con soporte para streams multimedia dinámicos, segmentación simultánea y estética retro Win32 enterprise.
+                    {t('settings.aboutDesc')}
                   </p>
                   <div className="text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-[#232f42] pt-2">
-                    Construido con Tauri 2, Rust, Tokio, React 19, TypeScript y Tailwind CSS.
+                    {t('settings.aboutTech')}
                   </div>
                 </div>
               </div>
@@ -370,10 +460,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             type="button"
             onClick={handleReset}
             className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] border border-slate-400 dark:border-[#384761] text-xs text-slate-700 dark:text-slate-300 cursor-pointer rounded-xs transition-colors"
-            title="Restablecer valores por defecto"
+            title={t('settings.defaultsTooltip')}
           >
             <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Predeterminados</span>
+            <span className="hidden sm:inline">{t('settings.defaults')}</span>
           </button>
 
           <div className="flex items-center gap-2">
@@ -382,14 +472,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClick={onClose}
               className="px-3 py-1 bg-slate-100 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] border border-slate-400 dark:border-[#384761] text-xs text-slate-700 dark:text-slate-300 cursor-pointer rounded-xs transition-colors"
             >
-              Cancelar
+              {t('settings.cancel')}
             </button>
             <button
               type="button"
               onClick={handleSave}
               className="px-4 py-1 bg-[#1a365d] hover:bg-[#23487a] dark:bg-blue-700 dark:hover:bg-blue-600 border border-[#0f2442] dark:border-blue-900 text-xs font-bold text-white cursor-pointer rounded-xs shadow-xs transition-colors"
             >
-              Guardar y Aplicar
+              {t('settings.save')}
             </button>
           </div>
         </div>

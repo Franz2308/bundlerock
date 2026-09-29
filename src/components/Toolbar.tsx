@@ -10,6 +10,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { DownloadTask } from '../types/download';
+import { useTranslation } from '../i18n';
 
 interface ToolbarProps {
   selectedTask: DownloadTask | null;
@@ -43,6 +44,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onCancelOrDelete,
   onClearCompleted,
 }) => {
+  const { t } = useTranslation();
+
   // Determine button states based on selection or aggregate counts
   const canResume = selectedTask
     ? selectedTask.status === 'paused' || selectedTask.status === 'failed'
@@ -62,10 +65,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           type="button"
           onClick={onOpenNewDownload}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] border border-slate-400 dark:border-[#303f56] rounded-xs text-xs text-slate-800 dark:text-slate-200 shadow-xs active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] cursor-pointer shrink-0 transition-colors"
-          title="Añadir URL"
+          title={t('toolbar.addUrl')}
         >
           <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="hidden sm:inline font-medium">Añadir URL</span>
+          <span className="hidden sm:inline font-medium">{t('toolbar.addUrl')}</span>
         </button>
         <div className="w-px h-5 bg-slate-400 dark:bg-[#2f3d54] mx-0.5 sm:mx-1 shrink-0"></div>
         <button
@@ -77,10 +80,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? 'bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] cursor-pointer'
               : 'bg-slate-200 dark:bg-[#131b28] border-slate-300 dark:border-[#222c3c] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
           }`}
-          title="Pausar"
+          title={t('toolbar.pause')}
         >
           <Pause className="w-4 h-4 text-red-500 dark:text-red-400" />
-          <span className="hidden sm:inline font-medium">Pausar</span>
+          <span className="hidden sm:inline font-medium">{t('toolbar.pause')}</span>
         </button>
         <button
           type="button"
@@ -91,10 +94,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? 'bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] cursor-pointer'
               : 'bg-slate-200 dark:bg-[#131b28] border-slate-300 dark:border-[#222c3c] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
           }`}
-          title="Reanudar"
+          title={t('toolbar.resume')}
         >
           <Play className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-          <span className="hidden sm:inline font-medium">Reanudar</span>
+          <span className="hidden sm:inline font-medium">{t('toolbar.resume')}</span>
         </button>
         <div className="w-px h-5 bg-slate-400 dark:bg-[#2f3d54] mx-0.5 sm:mx-1 shrink-0"></div>
         <button
@@ -106,10 +109,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? 'bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] cursor-pointer'
               : 'bg-slate-200 dark:bg-[#131b28] border-slate-300 dark:border-[#222c3c] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
           }`}
-          title="Eliminar"
+          title={t('toolbar.delete')}
         >
           <Trash2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-          <span className="hidden sm:inline font-medium">Eliminar</span>
+          <span className="hidden sm:inline font-medium">{t('toolbar.delete')}</span>
         </button>
         
         {onClearCompleted && (
@@ -120,13 +123,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xs text-xs shadow-xs border transition-all shrink-0 ${
               completedDownloadsCount > 0
                 ? 'bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] cursor-pointer'
-                : 'bg-slate-200 dark:bg-[#131b28] border-slate-300 dark:border-[#222c3c] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
+              : 'bg-slate-200 dark:bg-[#131b28] border-slate-300 dark:border-[#222c3c] text-slate-400 dark:text-slate-600 opacity-60 cursor-not-allowed'
             }`}
-            title="Limpiar completadas"
+            title={t('toolbar.clearCompleted')}
           >
             <CheckCircle className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            <span className="hidden md:inline font-medium">Limpiar completadas</span>
-            <span className="hidden sm:inline md:hidden font-medium">Limpiar</span>
+            <span className="hidden md:inline font-medium">{t('toolbar.clearCompleted')}</span>
+            <span className="hidden sm:inline md:hidden font-medium">{t('toolbar.clear')}</span>
           </button>
         )}
       </div>
@@ -142,7 +145,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 ? 'bg-[#cce8ff] dark:bg-[#203a63] text-slate-900 dark:text-blue-200 font-bold border-r border-slate-300 dark:border-[#2d3f5c]'
                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#243147] hover:text-slate-800 dark:hover:text-slate-200 border-r border-slate-300 dark:border-[#2d3f5c]'
             }`}
-            title="Vista detallada (Lista)"
+            title={t('toolbar.detailedView')}
           >
             <List className="w-3.5 h-3.5" />
           </button>
@@ -154,7 +157,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 ? 'bg-[#cce8ff] dark:bg-[#203a63] text-slate-900 dark:text-blue-200 font-bold'
                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#243147] hover:text-slate-800 dark:hover:text-slate-200'
             }`}
-            title="Vista compacta (Tarjetas)"
+            title={t('toolbar.compactView')}
           >
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
@@ -165,10 +168,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             onClick={onOpenSettings}
             className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] rounded-xs text-xs text-slate-800 dark:text-slate-200 shadow-xs active:shadow-inner active:bg-slate-300 dark:active:bg-[#2d3d57] cursor-pointer shrink-0 transition-colors"
-            title="Configuración y Ajustes (Ctrl+,)"
+            title={t('toolbar.settingsTooltip')}
           >
             <Settings className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-            <span className="hidden lg:inline font-medium">Ajustes</span>
+            <span className="hidden lg:inline font-medium">{t('toolbar.settings')}</span>
           </button>
         )}
       </div>

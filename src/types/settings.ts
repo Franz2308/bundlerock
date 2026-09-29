@@ -1,8 +1,11 @@
+export type Language = 'en' | 'es';
+
 export interface AppSettings {
   theme: 'light' | 'dark';
   nerdStats: boolean;
   defaultConnections: number;
   soundOnComplete: boolean;
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -10,6 +13,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nerdStats: false,
   defaultConnections: 8,
   soundOnComplete: false,
+  language: 'en',
 };
 
 export const SETTINGS_STORAGE_KEY = 'bundlerock_settings';
@@ -22,6 +26,7 @@ export const loadStoredSettings = (): AppSettings => {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      language: parsed.language === 'es' ? 'es' : 'en',
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -32,6 +37,6 @@ export const saveStoredSettings = (settings: AppSettings): void => {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   } catch (e) {
-    console.error('Error guardando configuracion:', e);
+    console.error('Error saving configuration:', e);
   }
 };

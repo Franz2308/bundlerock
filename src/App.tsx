@@ -32,9 +32,16 @@ import { TitleBar } from './components/TitleBar';
 import { SettingsModal } from './components/SettingsModal';
 import { AppSettings, loadStoredSettings, saveStoredSettings } from './types/settings';
 import { getFileCategory, formatSpeed } from './utils/formatters';
+import { LanguageProvider, useTranslation } from './i18n';
 import './App.css';
 
-export function App() {
+interface AppContentProps {
+  settings: AppSettings;
+  onSaveSettings: (newSettings: AppSettings) => void;
+}
+
+function AppContent({ settings, onSaveSettings }: AppContentProps) {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set());
@@ -45,8 +52,6 @@ export function App() {
   const [isNewDownloadOpen, setIsNewDownloadOpen] = useState(false);
   const [inspectingTask, setInspectingTask] = useState<DownloadTask | null>(null);
 
-  // Application Settings & Dark Mode state
-  const [settings, setSettings] = useState<AppSettings>(loadStoredSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [extractorStatus, setExtractorStatus] = useState<{ ytdlp_installed: boolean; ffmpeg_installed: boolean }>({
     ytdlp_installed: false,
@@ -74,10 +79,7 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleSaveSettings = (newSettings: AppSettings) => {
-    setSettings(newSettings);
-    saveStoredSettings(newSettings);
-  };
+  const handleSaveSettings = onSaveSettings;
 
   const toggleGroupExpand = (groupId: string) => {
     setExpandedGroupIds((prev) => {
@@ -643,12 +645,12 @@ export function App() {
             ) : viewMode === 'detailed' ? (
               <div className="w-full h-full min-w-[690px]">
                 <div className="download-grid bg-slate-200 dark:bg-[#161f2e] border-b border-slate-300 dark:border-[#202b3d] p-1 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 z-10 mb-1 select-none">
-                  <div className="text-center font-bold">#</div>
-                  <div className="min-w-0">Nombre de Archivo / Origen</div>
-                  <div className="min-w-0">Tamaño / Progreso</div>
-                  <div className="min-w-0 text-center">Velocidad / ETA</div>
-                  <div className="min-w-0 text-center">Estado</div>
-                  <div className="min-w-0 text-center">Acción</div>
+                  <div className="text-center font-bold">{t('app.gridIndex')}</div>
+                  <div className="min-w-0">{t('app.gridName')}</div>
+                  <div className="min-w-0">{t('app.gridSize')}</div>
+                  <div className="min-w-0 text-center">{t('app.gridSpeed')}</div>
+                  <div className="min-w-0 text-center">{t('app.gridStatus')}</div>
+                  <div className="min-w-0 text-center">{t('app.gridAction')}</div>
                 </div>
                 <div className="space-y-0.5">
                   {taskGroups.map((group, index) => (
@@ -697,7 +699,7 @@ export function App() {
           {/* Status Bar */}
           <div className="h-6 bg-slate-200 dark:bg-[#121824] border-t border-slate-300 dark:border-[#202b3d] flex items-center justify-between px-3 text-[11px] text-slate-700 dark:text-slate-300 shrink-0 gap-2 min-w-0">
             <span className="shrink-0">
-              Velocidad Global:{' '}
+              {t('app.globalSpeed')}{' '}
               <b className="text-red-600 dark:text-red-400 font-mono font-bold">
                 {formatSpeed(totalSpeedBps)}
               </b>
@@ -705,13 +707,13 @@ export function App() {
             {isInstallingExtractors && (
               <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-medium truncate min-w-0">
                 <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                <span className="truncate">Descargando motor multimedia y dependencias... (1ra vez)</span>
+                <span className="truncate">{t('app.installingDeps')}</span>
               </span>
             )}
             {extractorInstallError && (
               <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-medium truncate min-w-0" title={extractorInstallError}>
                 <AlertTriangle className="w-3 h-3 shrink-0" />
-                <span className="truncate">Error descargando motor multimedia</span>
+                <span className="truncate">{t('app.installDepsError')}</span>
               </span>
             )}
           </div>
@@ -753,6 +755,26 @@ export function App() {
         }}
       />
     </div>
+  );
+}
+
+export function App() {
+  const [settings, setSettings] = useState<AppSettings>(loadStoredSettings);
+
+  const handleSaveSettings = (newSettings: AppSettings) => {
+    setSettings(newSettings);
+    saveStoredSettings(newSettings);
+  };
+
+  return (
+    <LanguageProvider
+      language={settings.language}
+      onLanguageChange={(newLang) =>
+        handleSaveSettings({ ...settings, language: newLang })
+      }
+    >
+      <AppContent settings={settings} onSaveSettings={handleSaveSettings} />
+    </LanguageProvider>
   );
 }
 

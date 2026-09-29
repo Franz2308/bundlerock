@@ -18,10 +18,8 @@ import {
   formatSpeed,
   formatETA,
   getFileCategory,
-  
-  
 } from '../utils/formatters';
-
+import { useTranslation } from '../i18n';
 import { cn } from '../utils/cn';
 
 interface DownloadItemProps {
@@ -52,8 +50,7 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
   onOpenFolder,
   onInspect,
 }) => {
-  
-  
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
 
   const category: FileCategory = getFileCategory(task.file_name, task.is_animated_gif);
@@ -76,19 +73,19 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
         return (
           <span className="text-blue-700 dark:text-blue-400 font-bold flex items-center justify-center gap-1">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-            Descargando
+            {t('download.downloading')}
           </span>
         );
       case 'paused':
         return (
           <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-center gap-1">
-            <Pause className="w-2.5 h-2.5" /> En Pausa
+            <Pause className="w-2.5 h-2.5" /> {t('download.paused')}
           </span>
         );
       case 'completed':
-        return <span className="text-emerald-700 dark:text-emerald-400 font-bold">Completado</span>;
+        return <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t('download.completed')}</span>;
       case 'failed':
-        return <span className="text-red-600 dark:text-red-400 font-bold">Error</span>;
+        return <span className="text-red-600 dark:text-red-400 font-bold">{t('download.failed')}</span>;
       default:
         return <span className="text-slate-500 dark:text-slate-400">{task.status}</span>;
     }
@@ -133,8 +130,8 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
         <div className="flex flex-col min-w-0 flex-1">
           <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={task.file_name}>{task.file_name}</span>
           <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate" title={domain}>
-            {downStr} de {totalStr}
-            {nerdStats ? ` • ${task.segments ? task.segments.length : 1} hilos activos` : ''}
+            {downStr} {t('download.of')} {totalStr}
+            {nerdStats ? ` • ${task.segments ? task.segments.length : 1} ${t('download.activeThreads')}` : ''}
           </span>
         </div>
       </div>
@@ -171,17 +168,17 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
       {/* 6. Actions */}
       <div className="flex items-center justify-center gap-0.5 sm:gap-1 shrink-0">
         {task.status === 'downloading' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onPause(task.id); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title="Pausar">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onPause(task.id); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title={t('download.pause')}>
             <Pause className="w-3.5 h-3.5" />
           </button>
         )}
         {(task.status === 'paused' || task.status === 'failed') && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onResume(task.id); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title="Reanudar">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onResume(task.id); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title={t('download.resume')}>
             <Play className="w-3.5 h-3.5" />
           </button>
         )}
         {task.status === 'completed' && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onOpenFolder(task.file_path); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title="Abrir carpeta">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onOpenFolder(task.file_path); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title={t('download.openFolder')}>
             <FolderOpen className="w-3.5 h-3.5" />
           </button>
         )}
@@ -189,11 +186,11 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
           type="button"
           onClick={(e) => { e.stopPropagation(); onInspect(task); }}
           className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors shrink-0"
-          title="Propiedades y detalles"
+          title={t('download.properties')}
         >
           <Info className="w-3.5 h-3.5" />
         </button>
-        <button type="button" onClick={(e) => { e.stopPropagation(); onCancel(task.id, false); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-rose-600 dark:text-rose-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title="Eliminar">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onCancel(task.id, false); }} className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-rose-600 dark:text-rose-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors" title={t('download.delete')}>
           <X className="w-3.5 h-3.5" />
         </button>
       </div>

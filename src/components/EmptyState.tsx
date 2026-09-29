@@ -4,6 +4,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { FileCategory, StatusFilter } from '../types/download';
+import { useTranslation } from '../i18n';
 
 interface EmptyStateProps {
   selectedCategory: FileCategory;
@@ -20,8 +21,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onOpenNewDownload,
   onResetFilters,
 }) => {
+  const { t } = useTranslation();
   const isFiltered =
-    selectedCategory !== 'all' || selectedStatus !== 'all' || !!searchQuery;
+    selectedCategory !== 'all' || selectedStatus !== 'all' || Boolean(searchQuery);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center select-none h-full min-h-[320px]">
@@ -32,14 +34,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
       <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
         {isFiltered
-          ? 'No hay descargas que coincidan'
-          : 'No hay descargas en la lista'}
+          ? t('emptyState.matchingTitle')
+          : t('emptyState.defaultTitle')}
       </h3>
 
       <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mb-4 leading-relaxed">
         {isFiltered
-          ? 'Prueba modificando tus términos de búsqueda o cambiando el filtro de categoría y estado.'
-          : 'Pega un enlace HTTP/HTTPS para aprovechar la aceleración por conexiones dinámicas multisegmento.'}
+          ? t('emptyState.matchingDesc')
+          : t('emptyState.defaultDesc')}
       </p>
 
       <div className="flex items-center gap-2">
@@ -48,7 +50,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             onClick={onResetFilters}
             className="px-3 py-1.5 bg-slate-100 dark:bg-[#17202f] hover:bg-slate-200 dark:hover:bg-[#202b3d] border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-sm active:bg-slate-300 dark:active:bg-[#28354c] active:shadow-inner cursor-pointer transition-colors"
           >
-            Limpiar filtros
+            {t('emptyState.clearFilters')}
           </button>
         )}
         <button
@@ -56,7 +58,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           className="px-4 py-1.5 bg-slate-100 dark:bg-[#17202f] hover:bg-slate-200 dark:hover:bg-[#202b3d] border border-slate-400 dark:border-[#384761] text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm active:bg-slate-300 dark:active:bg-[#28354c] active:shadow-inner flex items-center gap-1.5 cursor-pointer transition-colors"
         >
           <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
-          <span>Agregar descarga</span>
+          <span>{t('emptyState.addDownload')}</span>
         </button>
       </div>
     </div>

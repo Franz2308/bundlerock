@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { FileCategory, StatusFilter } from '../types/download';
-
+import { useTranslation } from '../i18n';
 import { cn } from '../utils/cn';
 
 interface SidebarProps {
@@ -39,19 +39,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   statusCounts,
   onOpenNewDownload,
 }) => {
+  const { t } = useTranslation();
+
   const categories: {
     id: FileCategory;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     accentColor: string;
   }[] = [
-    { id: 'all', label: 'Todos los archivos', icon: FolderOpen, accentColor: 'text-cyan-400' },
-    { id: 'video', label: 'Videos', icon: Film, accentColor: 'text-purple-400' },
-    { id: 'audio', label: 'Música y Audio', icon: Music, accentColor: 'text-pink-400' },
-    { id: 'image', label: 'Imágenes / GIFs', icon: ImageIcon, accentColor: 'text-amber-400' },
-    { id: 'document', label: 'Documentos y Zips', icon: FileText, accentColor: 'text-blue-400' },
-    { id: 'program', label: 'Programas e ISOs', icon: Package, accentColor: 'text-emerald-400' },
-    { id: 'other', label: 'Otros Archivos', icon: File, accentColor: 'text-slate-400' },
+    { id: 'all', label: t('sidebar.allFiles'), icon: FolderOpen, accentColor: 'text-cyan-400' },
+    { id: 'video', label: t('sidebar.video'), icon: Film, accentColor: 'text-purple-400' },
+    { id: 'audio', label: t('sidebar.audio'), icon: Music, accentColor: 'text-pink-400' },
+    { id: 'image', label: t('sidebar.image'), icon: ImageIcon, accentColor: 'text-amber-400' },
+    { id: 'document', label: t('sidebar.document'), icon: FileText, accentColor: 'text-blue-400' },
+    { id: 'program', label: t('sidebar.program'), icon: Package, accentColor: 'text-emerald-400' },
+    { id: 'other', label: t('sidebar.other'), icon: File, accentColor: 'text-slate-400' },
   ];
 
   const statuses: {
@@ -60,11 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     icon: React.ComponentType<{ className?: string }>;
     color: string;
   }[] = [
-    { id: 'all', label: 'Todos los estados', icon: Layers, color: 'text-slate-300' },
-    { id: 'downloading', label: 'Descargando', icon: ArrowDownCircle, color: 'text-cyan-400' },
-    { id: 'paused', label: 'En Pausa', icon: PauseCircle, color: 'text-amber-400' },
-    { id: 'completed', label: 'Completadas', icon: CheckCircle2, color: 'text-emerald-400' },
-    { id: 'failed', label: 'Con Errores', icon: AlertCircle, color: 'text-rose-400' },
+    { id: 'all', label: t('sidebar.allStatus'), icon: Layers, color: 'text-slate-300' },
+    { id: 'downloading', label: t('sidebar.downloading'), icon: ArrowDownCircle, color: 'text-cyan-400' },
+    { id: 'paused', label: t('sidebar.paused'), icon: PauseCircle, color: 'text-amber-400' },
+    { id: 'completed', label: t('sidebar.completed'), icon: CheckCircle2, color: 'text-emerald-400' },
+    { id: 'failed', label: t('sidebar.failed'), icon: AlertCircle, color: 'text-rose-400' },
   ];
 
   const [categoriesOpen, setCategoriesOpen] = useState(true);
@@ -79,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setCategoriesOpen(!categoriesOpen)}
           className="bg-slate-200 hover:bg-slate-300/80 dark:bg-[#161f2e] dark:hover:bg-[#1e2a3e] border-y border-slate-300 dark:border-[#202b3d] p-1 px-2 font-semibold text-xs text-slate-700 dark:text-slate-300 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
-          <span className="truncate">Categorías</span>
+          <span className="truncate">{t('sidebar.categories')}</span>
           {categoriesOpen ? (
             <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[2.5] shrink-0" />
           ) : (
@@ -129,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setStatusOpen(!statusOpen)}
           className="bg-slate-200 hover:bg-slate-300/80 dark:bg-[#161f2e] dark:hover:bg-[#1e2a3e] border-y border-slate-300 dark:border-[#202b3d] p-1 px-2 font-semibold text-xs text-slate-700 dark:text-slate-300 flex justify-between items-center uppercase cursor-pointer transition-colors text-left"
         >
-          <span className="truncate">Estado / Filtro</span>
+          <span className="truncate">{t('sidebar.status')}</span>
           {statusOpen ? (
             <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[2.5] shrink-0" />
           ) : (
@@ -185,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full py-1.5 px-3 bg-slate-100 dark:bg-[#17202f] hover:bg-slate-200 dark:hover:bg-[#1f2c40] border border-slate-400 dark:border-[#2d3d54] rounded-sm text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 shadow-sm active:bg-slate-300 dark:active:bg-[#25354e] active:shadow-inner"
         >
           <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>Nueva Descarga</span>
+          <span>{t('sidebar.newDownload')}</span>
         </button>
       </div>
     </aside>

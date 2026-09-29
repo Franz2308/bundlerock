@@ -16,6 +16,7 @@ import {
 import { DownloadTask, DownloadStatus, FileCategory } from '../types/download';
 import { DownloadGroupItem } from './DownloadGroupRow';
 import { formatBytes, formatSpeed, getFileCategory } from '../utils/formatters';
+import { useTranslation } from '../i18n';
 import { cn } from '../utils/cn';
 
 interface DownloadCardProps {
@@ -43,6 +44,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
   onOpenFolder,
   onInspectTask,
 }) => {
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
   const primaryTask = group.tasks[0];
   const isMulti = group.isMultiFormat;
@@ -76,20 +78,20 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
         return (
           <span className="text-blue-700 font-bold flex items-center gap-1 text-[11px]">
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-            Descargando
+            {t('download.downloading')}
           </span>
         );
       case 'paused':
         return (
           <span className="text-slate-600 font-semibold flex items-center gap-1 text-[11px]">
             <Pause className="w-2.5 h-2.5" />
-            En Pausa
+            {t('download.paused')}
           </span>
         );
       case 'completed':
-        return <span className="text-emerald-700 font-bold text-[11px]">Completado</span>;
+        return <span className="text-emerald-700 font-bold text-[11px]">{t('download.completed')}</span>;
       case 'failed':
-        return <span className="text-red-600 font-bold text-[11px]">Error</span>;
+        return <span className="text-red-600 font-bold text-[11px]">{t('download.failed')}</span>;
       default:
         return <span className="text-slate-500 text-[11px]">{status}</span>;
     }
@@ -149,7 +151,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             {getStatusBadge(group.status)}
             {isMulti && (
               <span className="px-1.5 py-0.2 bg-[#cce8ff] dark:bg-[#1c3558] text-blue-900 dark:text-blue-200 border border-blue-400 dark:border-blue-600 text-[10px] font-bold shrink-0">
-                {group.tasks.length} formatos
+                {group.tasks.length} {t('download.formats')}
               </span>
             )}
             {!isMulti && primaryTask?.resolution && (
@@ -159,7 +161,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             )}
             {nerdStats && (
               <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-[#1e2738] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[#384761] text-[10px] font-mono shrink-0">
-                {primaryTask?.segments ? primaryTask.segments.length : 1} hilos
+                {primaryTask?.segments ? primaryTask.segments.length : 1} {t('download.threads')}
               </span>
             )}
           </div>
@@ -207,7 +209,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
       <div className="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-[#202b3d] text-xs">
         <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[120px]">
           {isMulti
-            ? group.tasks.map((t) => t.resolution || t.media_format || 'Auto').join(', ')
+            ? group.tasks.map((task) => task.resolution || task.media_format || t('download.auto')).join(', ')
             : primaryTask?.file_name}
         </span>
 
@@ -217,7 +219,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               type="button"
               onClick={() => onPauseTask(primaryTask?.id || group.id)}
               className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
-              title="Pausar"
+              title={t('download.pause')}
             >
               <Pause className="w-3 h-3" />
             </button>
@@ -228,7 +230,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               type="button"
               onClick={() => onResumeTask(primaryTask?.id || group.id)}
               className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-emerald-600 dark:text-emerald-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
-              title="Reanudar"
+              title={t('download.resume')}
             >
               <Play className="w-3 h-3" />
             </button>
@@ -239,7 +241,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               type="button"
               onClick={() => onOpenFolder(primaryTask.file_path)}
               className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs shrink-0 transition-colors"
-              title="Abrir carpeta contenedora"
+              title={t('download.openContainingFolder')}
             >
               <FolderOpen className="w-3 h-3" />
             </button>
@@ -250,7 +252,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               type="button"
               onClick={() => onInspectTask(primaryTask)}
               className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors"
-              title="Propiedades y detalles"
+              title={t('download.properties')}
             >
               <Info className="w-3 h-3" />
             </button>
@@ -260,7 +262,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             type="button"
             onClick={() => onCancelTask(primaryTask?.id || group.id, false)}
             className="p-1 bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#243147] hover:border-slate-500 dark:hover:border-slate-400 border border-slate-400 dark:border-[#384761] text-slate-700 dark:text-slate-300 hover:text-red-700 dark:hover:text-red-400 active:bg-slate-300 dark:active:bg-[#2d3d57] active:shadow-inner cursor-pointer rounded-xs transition-colors"
-            title="Eliminar de la lista"
+            title={t('download.deleteFromList')}
           >
             <Trash2 className="w-3 h-3" />
           </button>

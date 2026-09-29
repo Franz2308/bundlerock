@@ -7,8 +7,10 @@ import {
   toggleMaximizeWindow,
   isWindowMaximized,
 } from '../services/downloadApi';
+import { useTranslation } from '../i18n';
 
 export const TitleBar: React.FC = () => {
+  const { t } = useTranslation();
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
@@ -105,8 +107,8 @@ export const TitleBar: React.FC = () => {
           onPointerDown={(e) => e.stopPropagation()}
           onClick={handleMinimize}
           className="w-11 h-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-          title="Minimizar"
-          aria-label="Minimizar ventana"
+          title={t('titleBar.minimize')}
+          aria-label={t('titleBar.minimizeAria')}
         >
           <svg className="w-3 h-3 pointer-events-none" viewBox="0 0 10 10" fill="none">
             <path d="M1 5.5h8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -120,8 +122,8 @@ export const TitleBar: React.FC = () => {
           onPointerDown={(e) => e.stopPropagation()}
           onClick={handleToggleMaximize}
           className="w-11 h-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
-          title={isMaximized ? 'Restaurar' : 'Maximizar'}
-          aria-label={isMaximized ? 'Restaurar ventana' : 'Maximizar ventana'}
+          title={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
+          aria-label={isMaximized ? t('titleBar.restoreAria') : t('titleBar.maximizeAria')}
         >
           {isMaximized ? (
             <svg className="w-3 h-3 pointer-events-none" viewBox="0 0 10 10" fill="none">
@@ -162,8 +164,8 @@ export const TitleBar: React.FC = () => {
           onPointerDown={(e) => e.stopPropagation()}
           onClick={handleClose}
           className="w-11 h-full flex items-center justify-center text-white/80 hover:text-white hover:bg-[#e81123] active:bg-[#c4101f] transition-colors cursor-pointer"
-          title="Cerrar"
-          aria-label="Cerrar ventana"
+          title={t('titleBar.close')}
+          aria-label={t('titleBar.closeAria')}
         >
           <svg className="w-3 h-3 pointer-events-none" viewBox="0 0 10 10" fill="none">
             <path

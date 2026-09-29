@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DownloadSegment, DownloadStatus } from '../types/download';
 import { formatBytes, formatSpeed } from '../utils/formatters';
 import { Zap } from 'lucide-react';
+import { useTranslation } from '../i18n';
 import { cn } from '../utils/cn';
 
 interface SegmentedProgressBarProps {
@@ -27,6 +28,7 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
   showTooltips = true,
   size = 'md',
 }) => {
+  const { t } = useTranslation();
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
 
   const heightClasses = {
@@ -169,7 +171,7 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
                                     : 'bg-slate-500'
                                 )}
                               />
-                              Hilo #{seg.id + 1}
+                              {t('progressBar.thread', { id: seg.id + 1 })}
                             </span>
                             <span
                               className={cn(
@@ -192,7 +194,7 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
                             <div className="flex justify-between items-center text-slate-300">
                               <span className="flex items-center gap-1 text-slate-400">
                                 <Zap className="w-3 h-3 text-cyan-400 fill-cyan-400" />
-                                Velocidad hilo:
+                                {t('progressBar.threadSpeed')}
                               </span>
                               <span className="font-bold text-cyan-300">
                                 {isSegDownloading ? formatSpeed(segSpeed) : '--'}
@@ -200,28 +202,28 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
                             </div>
 
                             <div className="flex justify-between text-slate-300">
-                              <span className="text-slate-400">Progreso hilo:</span>
+                              <span className="text-slate-400">{t('progressBar.threadProgress')}</span>
                               <span className="font-semibold text-cyan-300">
                                 {segPercent.toFixed(1)}%
                               </span>
                             </div>
 
                             <div className="flex justify-between text-slate-400">
-                              <span>Descargado:</span>
+                              <span>{t('progressBar.downloaded')}</span>
                               <span className="text-slate-200">
                                 {formatBytes(seg.downloaded_bytes)} /{' '}
                                 {seg.total_bytes > 0
                                   ? formatBytes(seg.total_bytes)
-                                  : 'Dinámico'}
+                                  : t('progressBar.dynamic')}
                               </span>
                             </div>
 
                             <div className="flex justify-between text-slate-500 text-[10px]">
-                              <span>Rango bytes:</span>
+                              <span>{t('progressBar.byteRange')}</span>
                               <span className="text-slate-400">
                                 {seg.start_byte.toLocaleString()} -{' '}
                                 {seg.end_byte === 18446744073709551615
-                                  ? 'Fin'
+                                  ? t('progressBar.end')
                                   : seg.end_byte.toLocaleString()}
                               </span>
                             </div>
@@ -294,12 +296,12 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
               )}
             />
             <span>
-              {segments.length} conexiones multihilo activas
+              {t('progressBar.activeConnections', { count: segments.length })}
             </span>
           </div>
           <div>
-            {formatBytes(downloadedBytes)} de{' '}
-            {totalBytes ? formatBytes(totalBytes) : 'Tamaño dinámico'} (
+            {formatBytes(downloadedBytes)} {t('progressBar.of')}{' '}
+            {totalBytes ? formatBytes(totalBytes) : t('progressBar.dynamicSize')} (
             {progressPercentage.toFixed(1)}%)
           </div>
         </div>

@@ -88,18 +88,24 @@ export function formatETA(
   return `${hours}h ${mins}m`;
 }
 
-export function formatRelativeTime(timestamp: number): string {
+export function formatRelativeTime(timestamp: number, lang: 'en' | 'es' = 'en'): string {
   if (!timestamp) return '';
   const now = Date.now();
   const diffSec = Math.max(0, Math.floor((now - timestamp) / 1000));
 
-  if (diffSec < 60) return 'hace un momento';
+  if (diffSec < 60) {
+    return lang === 'es' ? 'hace un momento' : 'just now';
+  }
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `hace ${diffMin} min`;
+  if (diffMin < 60) {
+    return lang === 'es' ? `hace ${diffMin} min` : `${diffMin}m ago`;
+  }
   const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `hace ${diffHours} h`;
+  if (diffHours < 24) {
+    return lang === 'es' ? `hace ${diffHours} h` : `${diffHours}h ago`;
+  }
   const diffDays = Math.floor(diffHours / 24);
-  return `hace ${diffDays} d`;
+  return lang === 'es' ? `hace ${diffDays} d` : `${diffDays}d ago`;
 }
 
 export function formatDuration(secs?: number | null): string {

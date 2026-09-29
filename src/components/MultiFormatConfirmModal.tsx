@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { MediaFormatOption } from '../types/download';
 import { formatBytes } from '../utils/formatters';
+import { useTranslation } from '../i18n';
 
 interface MultiFormatConfirmModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
   fileNameBase,
   isStarting = false,
 }) => {
+  const { t, language } = useTranslation();
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
@@ -50,6 +52,8 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
     0
   );
 
+  const fallbackFileBase = fileNameBase || (language === 'es' ? 'archivo' : 'file');
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-[1px]">
       <div className="relative w-full max-w-lg bg-slate-100 dark:bg-[#141b27] border border-slate-400 dark:border-[#2d3a4f] shadow-2xl text-slate-800 dark:text-slate-100 flex flex-col max-h-[88vh] my-auto">
@@ -58,7 +62,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-cyan-300" />
             <h3 className="text-xs font-bold uppercase tracking-wide">
-              Aviso: Descarga Multiformato
+              {t('multiFormat.title')}
             </h3>
           </div>
           <button
@@ -66,7 +70,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
             onClick={onClose}
             disabled={isStarting}
             className="p-0.5 hover:bg-red-600 disabled:opacity-50 text-white transition-colors cursor-pointer"
-            title="Cerrar"
+            title={t('multiFormat.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -79,12 +83,10 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="font-bold text-xs text-amber-900 dark:text-amber-300">
-                Se descargarán {selectedFormats.length} variantes simultáneas
+                {t('multiFormat.warningTitle', { count: selectedFormats.length })}
               </h4>
               <p className="text-[11px] text-amber-800 dark:text-amber-400 leading-relaxed">
-                Ha seleccionado múltiples resoluciones o formatos para este enlace.
-                El programa iniciará tareas de descarga independientes para cada uno,
-                lo que generará archivos separados en disco y consumirá mayor ancho de banda de red.
+                {t('multiFormat.warningDesc')}
               </p>
             </div>
           </div>
@@ -92,10 +94,10 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
           {/* Formats List Panel */}
           <div className="bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649] p-2.5 space-y-2">
             <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-semibold text-xs border-b border-slate-200 dark:border-[#232f42] pb-1.5">
-              <span>Flujos a descargar ({selectedFormats.length}):</span>
+              <span>{t('multiFormat.streamsToDownload', { count: selectedFormats.length })}</span>
               {totalApproxSize > 0 && (
                 <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                  Total est.: ~{formatBytes(totalApproxSize)}
+                  {t('multiFormat.totalEst', { size: formatBytes(totalApproxSize) })}
                 </span>
               )}
             </div>
@@ -103,7 +105,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
             <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
               {selectedFormats.map((fmt) => {
                 const cleanTag = (fmt.quality_label || fmt.ext).replace(/[<>:"/\\|?*]/g, '_').trim();
-                const targetName = `${fileNameBase || 'archivo'} [${cleanTag}].${fmt.ext}`;
+                const targetName = `${fallbackFileBase} [${cleanTag}].${fmt.ext}`;
 
                 return (
                   <div
@@ -151,7 +153,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
               className="w-4 h-4 text-blue-600 rounded-none border-slate-400 dark:border-slate-600 focus:ring-0 cursor-pointer accent-blue-600"
             />
             <span className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-              No volver a mostrar esta advertencia en futuras descargas múltiples
+              {t('multiFormat.dontShowAgain')}
             </span>
           </label>
         </div>
@@ -164,7 +166,7 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
             disabled={isStarting}
             className="px-4 py-1.5 bg-slate-100 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] disabled:opacity-50 border border-slate-400 dark:border-[#384761] text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-sm active:shadow-inner cursor-pointer transition-colors"
           >
-            Cancelar
+            {t('multiFormat.cancel')}
           </button>
           <button
             type="button"
@@ -175,12 +177,12 @@ export const MultiFormatConfirmModal: React.FC<MultiFormatConfirmModalProps> = (
             {isStarting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-cyan-300" />
-                <span>Iniciando descargas...</span>
+                <span>{t('multiFormat.starting')}</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4 text-cyan-300" />
-                <span>Continuar con la descarga ({selectedFormats.length})</span>
+                <span>{t('multiFormat.continue', { count: selectedFormats.length })}</span>
               </>
             )}
           </button>

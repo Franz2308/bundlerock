@@ -1,139 +1,145 @@
 # BundleRock
 
-Gestor de descargas acelerado y extractor multimedia para Windows, desarrollado con Tauri 2, Rust y React.
+Accelerated download manager and multimedia extractor for Windows, developed with Tauri 2, Rust, and React.
 
 ---
 
-## Descripción General
+## Overview
 
-BundleRock es una aplicación de escritorio de alto rendimiento orientada a la gestión y aceleración de transferencias de archivos en entornos Windows. Inspirada en la arquitectura técnica de los gestores tradicionales como Internet Download Manager (IDM), combina un motor de segmentación dinámica multihilo implementado en Rust con un subsistema extractor multimedia basado en `yt-dlp` y `FFmpeg`.
+BundleRock is a high-performance desktop application designed for file transfer management and acceleration in Windows environments. Inspired by the technical architecture of traditional download managers such as Internet Download Manager (IDM), it combines a multithreaded dynamic segmentation engine implemented in Rust with a multimedia extractor subsystem based on `yt-dlp` and `FFmpeg`.
 
-Su interfaz de usuario prioriza la sobriedad, la densidad de información y la estética clásica Win32, ofreciendo control exhaustivo sobre las conexiones, formatos, temas visuales y organización de las descargas.
-
----
-
-## Características Principales
-
-### Motor de Descarga Acelerada
-* **Segmentación Dinámica Concurrente:** División automática de archivos en múltiples conexiones paralelas (configurables en 1, 4, 8, 16 o 32 hilos) mediante peticiones HTTP `Range`, maximizando el aprovechamiento del ancho de banda disponible.
-* **Sondeo Preliminar (Probe):** Inspección remota de cabeceras (`Accept-Ranges`, `Content-Length`, `Content-Disposition`, `ETag`) antes de iniciar la transferencia para determinar la viabilidad de la descarga acelerada y el tamaño exacto del recurso.
-* **Escritura Eficiente:** Manejo asíncrono de escritura en disco a través de Tokio, evitando bloqueos en la interfaz y minimizando tiempos de ensamblado.
-* **Monitoreo de Progreso en Tiempo Real:** Transmisión fluida de métricas de velocidad, porcentaje y tiempo restante (ETA) sin retardos ni bloqueos por buffer en Windows.
-
-### Extracción Multimedia y Galerías
-* **Soporte de Plataformas:** Descarga de transmisiones desacopladas (audio y video) desde YouTube, Twitter/X, Facebook y Reddit.
-* **Galerías de Imágenes:** Detección de publicaciones con múltiples imágenes (Twitter/X, Reddit), selector interactivo con casillas de verificación y opciones de almacenamiento (crear subcarpeta temática o guardar imágenes sueltas).
-* **Conversión Automática de GIFs de Twitter:** Detección de flujos de video en bucle y remuxing a formato `.gif` de alta calidad con paleta optimizada mediante FFmpeg.
-* **Selección Multiformato:** Capacidad para seleccionar simultáneamente múltiples resoluciones o variantes de un mismo recurso, generando tareas independientes organizadas en grupos.
-* **Mecanismo de Respaldo (Stream Fallback):** Si las dependencias de multiplexado no se encuentran disponibles, el sistema conmuta automáticamente a flujos pre-ensamblados para garantizar que el archivo resultante contenga audio y video integrados.
-
-### Interfaz de Usuario y Personalización
-* **Panel de Configuración Central:** Modal de ajustes accesible desde la barra de herramientas o mediante el atajo de teclado `Ctrl+,` para gestionar temas visuales, conexiones predeterminadas y nivel de telemetría.
-* **Modo Oscuro Integrado:** Esquema de color nocturno de alto contraste con tonos azul grisáceo (`#0c1017`, `#141b27`, `#1a2332`), manteniendo el diseño retro sobrio y reduciendo la fatiga visual.
-* **Nivel de Información Técnica (Estadísticas para Nerds):** Opción para ocultar métricas técnicas avanzadas por defecto (tablas de segmentos, rangos crudos de bytes) y habilitarlas a voluntad.
-* **Estructura Jerárquica en Árbol:** Visualización de descargas multivariante agrupadas con nodos expandibles estilo Windows Explorer.
-* **Visualización Dual:** Soporte para alternar entre vista detallada (tabla con métricas completas de tamaño, velocidad y estado) y vista compacta (tarjetas responsivas con diseño uniforme).
-* **Confirmación Configurable:** Notificación preventiva ante descargas múltiples de un mismo enlace, con persistencia de preferencia para suprimir advertencias futuras.
-* **Barra de Título Integrada:** Encabezado con controles de ventana personalizados (minimizar, maximizar, restaurar y cierre inmediato) con soporte nativo de arrastre.
-* **Portapapeles Automático:** Lectura directa del portapapeles mediante integración nativa para autocompletar enlaces al abrir el cuadro de diálogo de nueva descarga.
-
-### Gestión y Persistencia
-* **Persistencia de Tareas:** Serialización automática del estado del gestor en almacenamiento local (`tasks.json` en `AppData`), preservando el historial entre reinicios del programa.
-* **Política de Conservación:** La eliminación de registros del historial no destruye los archivos descargados en el almacenamiento físico a menos que se solicite de forma explícita.
-* **Auto-Aprovisionamiento de Dependencias:** Detección automática en el primer arranque y descarga transparente en segundo plano de los binarios requeridos (`yt-dlp` y `FFmpeg`) en `%APPDATA%\BundleRock\bin`.
+Its user interface prioritizes clarity, information density, and a classic Win32 aesthetic, offering comprehensive control over network connections, formats, interface language, visual themes, and download organization.
 
 ---
 
-## Tecnologías Utilizadas
+## Key Features
 
-* **Capa Nativa (Backend):**
-  * Rust (edición 2021)
+### Accelerated Download Engine
+* **Concurrent Dynamic Segmentation:** Automatic file partitioning across multiple parallel connections (configurable to 1, 4, 8, 16, or 32 threads) using HTTP `Range` requests, maximizing available bandwidth utilization.
+* **Preliminary Probe:** Remote inspection of HTTP headers (`Accept-Ranges`, `Content-Length`, `Content-Disposition`, `ETag`) prior to transfer to evaluate acceleration feasibility and exact resource size.
+* **Efficient Disk I/O:** Asynchronous disk writing handled via Tokio, preventing UI latency and minimizing file reassembly overhead.
+* **Real-Time Progress Telemetry:** Smooth streaming of transfer speed, percentage, and estimated time remaining (ETA) without buffer stalls on Windows.
+
+### Multimedia Extraction and Galleries
+* **Multi-Platform Support:** Decoupled stream downloading (video and audio) from YouTube, Twitter/X, Facebook, and Reddit.
+* **Image Gallery Extraction:** Detection of multi-image posts (Twitter/X, Reddit) with an interactive checklist selector and organization options (create dedicated subfolder or save loose files).
+* **Automatic Twitter GIF Conversion:** Loop stream detection with automatic remuxing to optimized `.gif` format using palette generation via FFmpeg.
+* **Multi-Format Selection:** Concurrent selection of multiple resolutions or format variants for a single source, creating grouped independent tasks.
+* **Stream Fallback Mechanism:** Graceful degradation to direct pre-muxed streams if external multiplexing binaries are unavailable, ensuring downloaded files always contain valid synchronized audio and video.
+
+### Internationalization and Accessibility
+* **Bilingual UI Support:** Native support for English and Spanish with complete UI string localization across all components, modals, and telemetry views.
+* **Default English Startup:** Starts in English by default with zero configuration required.
+* **Instant Language Toggle:** Dedicated Language tab in Settings permitting real-time toggling between English and Spanish with persistent storage in local configuration.
+
+### User Interface and Customization
+* **Central Settings Panel:** Configuration modal accessible from the toolbar or via `Ctrl+,` to manage visual themes, language, default thread counts, and telemetry display.
+* **Integrated Dark Mode:** High-contrast night color palette with deep slate tones (`#0c1017`, `#141b27`, `#1a2332`), preserving retro styling while reducing eye fatigue.
+* **Technical Information Level (Stats for Nerds):** Option to toggle advanced technical telemetry (active threads, per-connection byte ranges, segment inspection tables) or maintain a clean minimalist view.
+* **Hierarchical Tree Structure:** Tree view grouping multi-format and multi-stream variants under expandable parent tasks.
+* **Dual View Modes:** Seamless toggle between detailed table view (complete columns for file size, progress, speed, and status) and responsive compact card grid.
+* **Configurable Multi-Download Confirmation:** Advisory dialog for simultaneous multi-variant downloads with preference persistence to suppress future warnings.
+* **Integrated Title Bar:** Custom Win32 window header with native drag support and custom minimize, maximize, restore, and close actions.
+* **Automatic Clipboard Integration:** Native clipboard inspection to automatically pre-fill download links upon opening the new download modal.
+
+### Task Management and Persistence
+* **State Persistence:** Automatic serialization of all download metadata to local storage (`tasks.json` in `AppData`), preserving history and resumed tasks across restarts.
+* **Non-Destructive Deletion Policy:** Removing task entries from the list does not delete physical files from disk unless explicitly requested.
+* **Automatic Dependency Provisioning:** Detection and silent background retrieval of required binaries (`yt-dlp` and `FFmpeg`) into `%APPDATA%\BundleRock\bin`.
+
+---
+
+## Tech Stack
+
+* **Native Backend:**
+  * Rust (2021 edition)
   * Tauri v2
-  * Tokio (Entorno de ejecución asíncrono)
-  * Reqwest (Cliente HTTP con soporte de streaming)
-  * Zip (Descompresión de binarios en memoria)
-  * Tauri Plugin Clipboard Manager (Acceso seguro al portapapeles)
+  * Tokio (Asynchronous runtime)
+  * Reqwest (HTTP client with streaming support)
+  * Zip (In-memory archive extraction)
+  * Tauri Plugin Clipboard Manager (Native clipboard access)
 
-* **Capa de Presentación (Frontend):**
+* **Frontend Presentation Layer:**
   * React 19
   * TypeScript
   * Vite
   * Tailwind CSS v4
-  * Lucide React (Iconografía vectorial)
+  * Lucide React (Vector icons)
 
 ---
 
-## Estructura del Repositorio
+## Repository Structure
 
 ```text
 bundlerock/
 ├── src/
-│   ├── components/            # Componentes de interfaz (TitleBar, Toolbar, SettingsModal, NewDownloadModal, Vistas)
-│   ├── services/              # Cliente IPC de comunicación con el backend Tauri
-│   ├── types/                 # Definiciones de tipos TypeScript y modelos de datos (descargas, ajustes)
-│   ├── utils/                 # Utilidades de formato de bytes, velocidad y clasificación
-│   └── App.tsx                # Orquestador principal de estado, tema y eventos
+│   ├── components/            # UI Components (TitleBar, Toolbar, SettingsModal, NewDownloadModal, Views)
+│   ├── i18n/                  # Internationalization context, hooks, and English/Spanish dictionaries
+│   ├── services/              # IPC client communicating with Tauri backend
+│   ├── types/                 # TypeScript type definitions and data models (downloads, settings)
+│   ├── utils/                 # Formatters for bytes, transfer speeds, and category classification
+│   └── App.tsx                # Root state orchestrator, theme, language provider, and event routing
 ├── src-tauri/
 │   ├── src/
-│   │   ├── commands.rs        # Comandos IPC expuestos a la capa de presentación
-│   │   ├── engine.rs          # Motor de descarga acelerada por rangos HTTP
-│   │   ├── manager.rs         # Administrador de tareas, persistencia y ciclo de vida
-│   │   ├── media_extractor.rs # Subsistema de extracción con yt-dlp y FFmpeg
-│   │   ├── models.rs          # Estructuras de datos serializables
-│   │   ├── probe.rs           # Inspección preliminar de URLs remotas
-│   │   └── lib.rs             # Configuración de plugins y arranque de Tauri
-│   ├── Cargo.toml             # Dependencias del ecosistema Rust
-│   └── tauri.conf.json        # Configuración de empaquetado y ventanas
-└── package.json               # Dependencias del entorno Node.js
+│   │   ├── commands.rs        # IPC commands exposed to the frontend layer
+│   │   ├── engine.rs          # Accelerated multithreaded HTTP range download engine
+│   │   ├── manager.rs         # Task manager, lifecycle, and disk persistence
+│   │   ├── media_extractor.rs # Extraction subsystem leveraging yt-dlp and FFmpeg
+│   │   ├── models.rs          # Serializable Rust data structures
+│   │   ├── probe.rs           # Preliminary remote URL inspection and header analysis
+│   │   └── lib.rs             # Tauri plugin initialization and application bootstrap
+│   ├── Cargo.toml             # Rust crate dependencies and workspace configuration
+│   └── tauri.conf.json        # Tauri packaging, capabilities, and window definitions
+└── package.json               # Node.js dependencies and build scripts
 ```
 
 ---
 
-## Requisitos de Construcción
+## Build Requirements
 
-Para compilar BundleRock desde el código fuente se requiere:
+Building BundleRock from source requires:
 
-1. **Node.js:** Versión 18.0 o superior con `npm`.
-2. **Rust Toolchain:** Versión estable (instalable mediante `rustup`).
-3. **Microsoft C++ Build Tools:** Requerido para la vinculación nativa en Windows (incluido en Visual Studio Build Tools).
+1. **Node.js:** Version 18.0 or higher with `npm`.
+2. **Rust Toolchain:** Stable release (installable via `rustup`).
+3. **Microsoft C++ Build Tools:** Required for native compilation on Windows (included with Visual Studio Build Tools).
 
 ---
 
-## Instrucciones de Compilación
+## Compilation Instructions
 
-### 1. Clonar el repositorio
+### 1. Clone the repository
 ```powershell
 git clone https://github.com/Franz2308/bundlerock.git
 cd bundlerock
 ```
 
-### 2. Instalar dependencias del cliente web
+### 2. Install web dependencies
 ```powershell
 npm install
 ```
 
-### 3. Verificación de tipos y análisis de código
+### 3. Type checking and validation
 ```powershell
 npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-### 4. Ejecución en modo de desarrollo
+### 4. Run in development mode
 ```powershell
 npm run tauri dev
 ```
 
-### 5. Compilación de distribuibles para producción
+### 5. Compile production distributables
 ```powershell
 npm run tauri build
 ```
 
-Los binarios finales se generarán en las siguientes ubicaciones:
-* **Ejecutable Portable:** `src-tauri/target/release/bundlerock.exe`
-* **Instalador NSIS:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.1_x64-setup.exe`
+Final executables and installers will be generated at:
+* **Portable Executable:** `src-tauri/target/release/bundlerock.exe`
+* **NSIS Installer:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.1_x64-setup.exe`
 
 ---
 
-## Distribución y Binarios Precompilados
+## Distribution and Pre-compiled Binaries
 
-Los paquetes de instalación y versiones ejecutables directas están disponibles en la sección de [Releases de este repositorio](https://github.com/Franz2308/bundlerock/releases).
+Installers and standalone binaries are available on the [Releases page](https://github.com/Franz2308/bundlerock/releases).

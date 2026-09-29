@@ -30,6 +30,7 @@ import {
 } from '../services/downloadApi';
 import { cn } from '../utils/cn';
 import { MultiFormatConfirmModal } from './MultiFormatConfirmModal';
+import { useTranslation } from '../i18n';
 
 interface NewDownloadModalProps {
   isOpen: boolean;
@@ -66,6 +67,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   defaultConnections,
   onStartDownload,
 }) => {
+  const { t, language } = useTranslation();
   const [url, setUrl] = useState('');
   const [fileName, setFileName] = useState('');
   const [savePath, setSavePath] = useState('');
@@ -174,7 +176,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           ? err.message
           : typeof err === 'string'
           ? err
-          : 'No se pudo obtener información del enlace.';
+          : t('newDownload.defaultProbeError');
       setProbeError(message);
     } finally {
       setProbing(false);
@@ -250,7 +252,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           ? err.message
           : typeof err === 'string'
           ? err
-          : 'Error descargando yt-dlp';
+          : t('newDownload.ytdlpInstallError');
       setInstallError(msg);
     } finally {
       setInstallingExtractor(false);
@@ -344,7 +346,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             ? err.message
             : typeof err === 'string'
             ? err
-            : 'Error al descargar las imágenes de la galería';
+            : t('newDownload.galleryError');
         setProbeError(message);
       } finally {
         setStarting(false);
@@ -452,7 +454,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           ? err.message
           : typeof err === 'string'
           ? err
-          : 'Error al iniciar la descarga';
+          : t('newDownload.downloadError');
       setProbeError(message);
     } finally {
       setStarting(false);
@@ -490,28 +492,28 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-50 dark:bg-rose-950/400"></span>
-            Nivel 1 • {platformDisplay}
+            {t('newDownload.level', { level, platform: platformDisplay })}
           </span>
         );
       case 2:
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-800">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-50 dark:bg-blue-950/400"></span>
-            Nivel 2 • {platformDisplay}
+            {t('newDownload.level', { level, platform: platformDisplay })}
           </span>
         );
       case 3:
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-800">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-50 dark:bg-amber-950/400"></span>
-            Nivel 3 • {platformDisplay}
+            {t('newDownload.level', { level, platform: platformDisplay })}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-300 dark:border-purple-800">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-50 dark:bg-purple-950/400"></span>
-            Multimedia • {platformDisplay}
+            {t('newDownload.multimedia', { platform: platformDisplay })}
           </span>
         );
     }
@@ -525,14 +527,14 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-cyan-300" />
             <h2 className="text-xs font-bold uppercase tracking-wide">
-              Nueva Descarga
+              {t('newDownload.title')}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-0.5 hover:bg-red-600 text-white transition-colors cursor-pointer"
-            title="Cerrar"
+            title={t('newDownload.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -544,7 +546,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             {/* URL Input */}
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Enlace de descarga o video (YouTube, X, Facebook, Reddit o directo):
+              {t('newDownload.urlLabel')}
             </label>
             <div className="flex items-center gap-1.5">
               <input
@@ -552,31 +554,31 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 required
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=... o https://ejemplo.com/archivo.zip"
+                placeholder={t('newDownload.urlPlaceholder')}
                 className="flex-1 bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
               />
               <button
                 type="button"
                 onClick={handlePaste}
-                title="Pegar enlace del portapapeles"
+                title={t('newDownload.pasteTooltip')}
                 className="px-2.5 py-1.5 bg-slate-200 dark:bg-[#192231] hover:bg-slate-300 dark:hover:bg-[#222e42] border border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 text-xs shadow-sm active:shadow-inner flex items-center gap-1 cursor-pointer shrink-0 font-medium transition-colors"
               >
                 <ClipboardPaste className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
-                <span>Pegar</span>
+                <span>{t('newDownload.paste')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleProbe(url)}
                 disabled={!url.trim() || probing}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] disabled:opacity-50 border border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 text-xs shadow-xs active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] flex items-center gap-1.5 cursor-pointer shrink-0 font-medium transition-colors rounded-xs"
-                title="Inspeccionar enlace y detectar formatos disponibles"
+                title={t('newDownload.inspectTooltip')}
               >
                 {probing ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" />
                 ) : (
                   <Search className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
                 )}
-                <span>Inspeccionar</span>
+                <span>{t('newDownload.inspect')}</span>
               </button>
             </div>
           </div>
@@ -585,7 +587,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           {probing && (
             <div className="p-2.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-800 flex items-center gap-2 text-xs text-blue-800 dark:text-blue-400 animate-pulse">
               <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-              <span>Analizando enlace, extrayendo metadatos y detectando formatos...</span>
+              <span>{t('newDownload.probing')}</span>
             </div>
           )}
 
@@ -640,7 +642,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   </h4>
                   {media.uploader && (
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 truncate">
-                      Canal / Autor:{' '}
+                      {t('newDownload.channelAuthor')}{' '}
                       <span className="text-blue-800 dark:text-blue-400 font-semibold">
                         {media.uploader}
                       </span>
@@ -655,13 +657,13 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   <Sparkles className="w-4 h-4 text-pink-600 dark:text-pink-400 shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-pink-900 dark:text-pink-300 flex items-center gap-1.5">
-                      <span>GIF Animado detectado</span>
+                      <span>{t('newDownload.animatedGifDetected')}</span>
                       <span className="text-[10px] font-mono uppercase px-1 py-0.2 bg-pink-200 dark:bg-pink-900/50 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-[#73354f]">
                         Twitter / X
                       </span>
                     </div>
                     <div className="text-slate-700 dark:text-slate-300 mt-0.5 text-[11px]">
-                      Puedes descargarlo como una animación <strong>.gif</strong> real optimizada o como video <strong>.mp4</strong> en bucle.
+                      {t('newDownload.animatedGifDesc')}
                     </div>
                   </div>
                 </div>
@@ -681,7 +683,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     )}
                   >
                     <Images className="w-3.5 h-3.5" />
-                    <span>Galería de imágenes ({gallery.length})</span>
+                    <span>{t('newDownload.galleryTab', { count: gallery.length })}</span>
                   </button>
                   <button
                     type="button"
@@ -694,7 +696,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     )}
                   >
                     <Film className="w-3.5 h-3.5" />
-                    <span>Video / Stream ({media.formats.length} calidades)</span>
+                    <span>{t('newDownload.videoTab', { count: media.formats.length })}</span>
                   </button>
                 </div>
               )}
@@ -705,7 +707,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Images className="w-3.5 h-3.5 text-slate-600" />
-                      <span>Imágenes encontradas ({gallery.length}):</span>
+                      <span>{t('newDownload.imagesFound', { count: gallery.length })}</span>
                     </label>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -713,14 +715,14 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                         onClick={selectAllImages}
                         className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#222e42] text-blue-800 dark:text-blue-400 border border-slate-400 dark:border-[#384761] cursor-pointer shadow-sm active:bg-slate-300 dark:active:bg-[#2a3850]"
                       >
-                        Seleccionar todas
+                        {t('newDownload.selectAll')}
                       </button>
                       <button
                         type="button"
                         onClick={deselectAllImages}
                         className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#222e42] text-slate-700 dark:text-slate-300 border border-slate-400 dark:border-[#384761] cursor-pointer shadow-sm active:bg-slate-300 dark:active:bg-[#2a3850]"
                       >
-                        Deseleccionar
+                        {t('newDownload.deselectAll')}
                       </button>
                     </div>
                   </div>
@@ -742,7 +744,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                         >
                           <img
                             src={item.thumbnail_url || item.url}
-                            alt={`Imagen ${idx + 1}`}
+                            alt={t('newDownload.imageAlt', { index: idx + 1 })}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
@@ -783,7 +785,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     <div className="p-2.5 bg-slate-50 dark:bg-[#192231] border border-slate-300 dark:border-[#384761] space-y-1.5">
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                         <FolderPlus className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
-                        <span>¿Cómo guardar las imágenes?</span>
+                        <span>{t('newDownload.howToSave')}</span>
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <button
@@ -799,10 +801,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           <FolderPlus className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold text-slate-900 dark:text-slate-200">
-                              Crear una subcarpeta (Recomendado)
+                              {t('newDownload.createSubfolder')}
                             </div>
                             <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                              Crea una carpeta con el título de la publicación para contener las fotos
+                              {t('newDownload.createSubfolderDesc')}
                             </div>
                           </div>
                         </button>
@@ -819,10 +821,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                           <Folder className="w-4 h-4 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-semibold text-slate-900 dark:text-slate-200">
-                              Guardar imágenes sueltas
+                              {t('newDownload.saveLoose')}
                             </div>
                             <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
-                              Descarga las fotos directamente en la carpeta de destino
+                              {t('newDownload.saveLooseDesc')}
                             </div>
                           </div>
                         </button>
@@ -838,25 +840,28 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Film className="w-3.5 h-3.5 text-slate-600" />
-                      <span>Seleccionar Calidades y Formatos:</span>
+                      <span>{t('newDownload.selectQualities')}</span>
                     </label>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] text-blue-700 dark:text-blue-400 font-mono font-semibold mr-1">
-                        {selectedFormatIds.size} de {media.formats.length} seleccionados
+                        {t('newDownload.selectedCount', {
+                          selected: selectedFormatIds.size,
+                          total: media.formats.length,
+                        })}
                       </span>
                       <button
                         type="button"
                         onClick={selectAllFormats}
                         className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#222e42] text-blue-800 dark:text-blue-400 border border-slate-400 dark:border-[#384761] cursor-pointer shadow-sm active:bg-slate-300 dark:active:bg-[#2a3850]"
                       >
-                        Seleccionar todos
+                        {t('newDownload.selectAllFormats')}
                       </button>
                       <button
                         type="button"
                         onClick={deselectAllFormats}
                         className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-[#1a2332] hover:bg-slate-200 dark:hover:bg-[#222e42] text-slate-700 dark:text-slate-300 border border-slate-400 dark:border-[#384761] cursor-pointer shadow-sm active:bg-slate-300 dark:active:bg-[#2a3850]"
                       >
-                        Deseleccionar
+                        {t('newDownload.deselectAll')}
                       </button>
                     </div>
                   </div>
@@ -906,7 +911,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
                           <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-mono pl-5">
                             <span>
-                              {fmt.resolution || (fmt.is_audio_only ? 'Audio' : 'Video')}
+                              {fmt.resolution || (fmt.is_audio_only ? t('newDownload.audio') : t('newDownload.video'))}
                             </span>
                             {fmt.filesize_approx && (
                               <span className="font-semibold text-slate-800 dark:text-slate-300">
@@ -927,7 +932,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   <div className="flex items-start gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <span>
-                      Se requiere el motor <strong>yt-dlp</strong> para ensamblar streams de audio/video.
+                      {t('newDownload.ytdlpRequired')}
                     </span>
                   </div>
 
@@ -940,7 +945,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                   {installSuccess ? (
                     <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      ¡yt-dlp instalado y configurado correctamente!
+                      {t('newDownload.ytdlpSuccess')}
                     </div>
                   ) : (
                     <button
@@ -956,8 +961,8 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                       )}
                       <span>
                         {installingExtractor
-                          ? 'Descargando motor yt-dlp...'
-                          : 'Instalar yt-dlp automáticamente'}
+                          ? t('newDownload.downloadingYtdlp')
+                          : t('newDownload.installYtdlpAuto')}
                       </span>
                     </button>
                   )}
@@ -971,7 +976,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                     FFmpeg
                   </span>
                   <span>
-                    No se detectó FFmpeg en el sistema. Se usará el stream de mayor calidad directa sin remuxing.
+                    {t('newDownload.ffmpegNotice')}
                   </span>
                 </div>
               )}
@@ -982,30 +987,30 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           {probeResult && !media && !probing && (
             <div className="p-2.5 bg-white dark:bg-[#1a2332] border border-slate-300 dark:border-[#2d3a4f] space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Tamaño detectado:</span>
+                <span className="text-slate-600">{t('newDownload.detectedSize')}</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-slate-200">
                   {formatBytes(probeResult.content_length)}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Aceleración multihilo:</span>
+                <span className="text-slate-600">{t('newDownload.multithreadAccel')}</span>
                 {probeResult.accept_ranges ? (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 border border-emerald-300 dark:border-emerald-800">
                     <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    Soportada (Accept-Ranges)
+                    {t('newDownload.supportedRanges')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 border border-amber-300 dark:border-amber-800">
                     <AlertTriangle className="w-3 h-3 text-amber-600" />
-                    Descarga en hilo único
+                    {t('newDownload.singleThread')}
                   </span>
                 )}
               </div>
 
               {probeResult.content_type && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Tipo de contenido:</span>
+                  <span className="text-slate-600">{t('newDownload.contentType')}</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px]">
                     {probeResult.content_type}
                   </span>
@@ -1017,11 +1022,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           {/* File Name Input */}
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Nombre de archivo / Publicación:
+              {t('newDownload.fileNameLabel')}
             </label>
             {isGalleryMode ? (
               <p className="text-[11px] text-slate-600 dark:text-slate-400 bg-white dark:bg-[#1a2332] p-2 border border-slate-300 dark:border-[#384761]">
-                Las {selectedImageIndices.size} imágenes seleccionadas se guardarán numeradas como:{' '}
+                {t('newDownload.galleryNotice', { count: selectedImageIndices.size })}{' '}
                 <code className="text-blue-900 dark:text-blue-400 font-mono font-semibold">
                   {(fileName || 'imagen').split('.')[0]}_1.jpg
                 </code>
@@ -1036,7 +1041,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
                 type="text"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                placeholder="nombre_de_archivo.ext (opcional, se auto-detecta)"
+                placeholder={t('newDownload.fileNamePlaceholder')}
                 className="w-full bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
               />
             )}
@@ -1045,13 +1050,13 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
           {/* Save Directory */}
           <div className="space-y-1 pb-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Carpeta de destino:
+              {t('newDownload.destinationFolder')}
             </label>
             <input
               type="text"
               value={savePath}
               onChange={(e) => setSavePath(e.target.value)}
-              placeholder="Ruta de guardado (por defecto Descargas)"
+              placeholder={t('newDownload.destinationPlaceholder')}
               className="w-full bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
             />
           </div>
@@ -1064,7 +1069,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 bg-slate-100 dark:bg-[#1c2536] hover:bg-slate-300 dark:hover:bg-[#28354c] border border-slate-400 dark:border-[#384761] text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-xs active:bg-slate-300 dark:active:bg-[#32435f] active:shadow-inner cursor-pointer rounded-xs transition-colors"
           >
-            Cancelar
+            {t('newDownload.cancel')}
           </button>
           <button
             type="submit"
@@ -1089,12 +1094,14 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             )}
             <span>
               {isGalleryMode
-                ? `Descargar ${selectedImageIndices.size} ${selectedImageIndices.size === 1 ? 'imagen' : 'imágenes'}`
+                ? selectedImageIndices.size === 1
+                  ? t('newDownload.downloadImagesSingular')
+                  : t('newDownload.downloadImagesPlural', { count: selectedImageIndices.size })
                 : media
                 ? selectedFormatIds.size > 1
-                  ? `Descargar ${selectedFormatIds.size} formatos`
-                  : 'Descargar Video / Audio'
-                : 'Descargar Ahora'}
+                  ? t('newDownload.downloadFormats', { count: selectedFormatIds.size })
+                  : t('newDownload.downloadVideoAudio')
+                : t('newDownload.downloadNow')}
             </span>
           </button>
         </div>
@@ -1113,11 +1120,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             : []
         }
         fileNameBase={
-          (fileName.trim() || media?.title || 'archivo')
+          (fileName.trim() || media?.title || (language === 'es' ? 'archivo' : 'file'))
             .replace(/https?:\/\/\S+/g, '')
             .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
             .replace(/\.[^/.]+$/, '')
-            .trim() || 'archivo'
+            .trim() || (language === 'es' ? 'archivo' : 'file')
         }
       />
     </div>
