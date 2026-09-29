@@ -1,4 +1,4 @@
-import { TranslationDictionary } from '../types';
+import type { TranslationDictionary } from '../types';
 
 export const es: TranslationDictionary = {
   titleBar: {
@@ -57,6 +57,8 @@ export const es: TranslationDictionary = {
     completed: 'Completado',
     failed: 'Error',
     pending: 'Pendiente',
+    cancelled: 'Cancelado',
+    probing: 'Analizando',
     of: 'de',
     activeThreads: 'hilos activos',
     threads: 'hilos',
@@ -100,8 +102,8 @@ export const es: TranslationDictionary = {
     inspectTooltip: 'Inspeccionar enlace y detectar formatos disponibles',
     probing: 'Analizando enlace, extrayendo metadatos y detectando formatos...',
     defaultProbeError: 'No se pudo obtener información del enlace.',
-    level: 'Nivel',
-    multimedia: 'Multimedia',
+    level: 'Nivel {level} • {platform}',
+    multimedia: 'Multimedia • {platform}',
     channelAuthor: 'Canal / Autor:',
     animatedGifDetected: 'GIF Animado detectado',
     animatedGifDesc: 'Puedes descargarlo como una animación .gif real optimizada o como video .mp4 en bucle.',

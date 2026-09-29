@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { Language, TranslationDictionary } from './types';
+import type { Language, TranslationDictionary } from './types';
 import { en } from './locales/en';
 import { es } from './locales/es';
 
@@ -56,17 +56,15 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
         template = resolvePath(dictionaries.en, path);
       }
 
-      if (template === undefined) {
-        return path;
-      }
+      let result = template ?? path;
 
       if (params) {
         for (const [key, val] of Object.entries(params)) {
-          template = template.replace(new RegExp(`\\{${key}\\}`, 'g'), String(val));
+          result = result.split(`{${key}}`).join(String(val));
         }
       }
 
-      return template;
+      return result;
     };
   }, [language]);
 

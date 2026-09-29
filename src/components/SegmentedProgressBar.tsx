@@ -28,7 +28,7 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
   showTooltips = true,
   size = 'md',
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [activeTooltip, setActiveTooltip] = useState<number | null>(null);
 
   const heightClasses = {
@@ -185,7 +185,7 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
                                   : 'bg-slate-800 text-slate-400'
                               )}
                             >
-                              {seg.status}
+                              {t(`download.${seg.status}`) || seg.status}
                             </span>
                           </div>
 
@@ -221,10 +221,10 @@ export const SegmentedProgressBar: React.FC<SegmentedProgressBarProps> = ({
                             <div className="flex justify-between text-slate-500 text-[10px]">
                               <span>{t('progressBar.byteRange')}</span>
                               <span className="text-slate-400">
-                                {seg.start_byte.toLocaleString()} -{' '}
+                                {seg.start_byte.toLocaleString(language === 'es' ? 'es-ES' : 'en-US')} -{' '}
                                 {seg.end_byte === 18446744073709551615
                                   ? t('progressBar.end')
-                                  : seg.end_byte.toLocaleString()}
+                                  : seg.end_byte.toLocaleString(language === 'es' ? 'es-ES' : 'en-US')}
                               </span>
                             </div>
                           </div>

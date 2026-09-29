@@ -92,8 +92,14 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
         return <span className="text-emerald-700 font-bold text-[11px]">{t('download.completed')}</span>;
       case 'failed':
         return <span className="text-red-600 font-bold text-[11px]">{t('download.failed')}</span>;
+      case 'pending':
+        return <span className="text-slate-500 font-semibold text-[11px]">{t('download.pending')}</span>;
+      case 'probing':
+        return <span className="text-cyan-600 font-semibold text-[11px]">{t('download.probing')}</span>;
+      case 'cancelled':
+        return <span className="text-slate-400 font-semibold text-[11px]">{t('download.cancelled')}</span>;
       default:
-        return <span className="text-slate-500 text-[11px]">{status}</span>;
+        return <span className="text-slate-500 text-[11px]">{t(`download.${status}`) || status}</span>;
     }
   };
 

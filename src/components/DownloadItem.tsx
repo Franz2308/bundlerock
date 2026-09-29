@@ -86,8 +86,14 @@ export const DownloadItem: React.FC<DownloadItemProps> = ({
         return <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t('download.completed')}</span>;
       case 'failed':
         return <span className="text-red-600 dark:text-red-400 font-bold">{t('download.failed')}</span>;
+      case 'pending':
+        return <span className="text-slate-500 dark:text-slate-400 font-semibold">{t('download.pending')}</span>;
+      case 'probing':
+        return <span className="text-cyan-600 dark:text-cyan-400 font-semibold">{t('download.probing')}</span>;
+      case 'cancelled':
+        return <span className="text-slate-400 dark:text-slate-500 font-semibold">{t('download.cancelled')}</span>;
       default:
-        return <span className="text-slate-500 dark:text-slate-400">{task.status}</span>;
+        return <span className="text-slate-500 dark:text-slate-400">{t(`download.${task.status}`) || task.status}</span>;
     }
   };
 

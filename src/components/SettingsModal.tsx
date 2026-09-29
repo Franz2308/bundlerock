@@ -75,8 +75,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleLanguageSelect = (newLang: Language) => {
-    const updated = { ...tempSettings, language: newLang };
-    setTempSettings(updated);
+    const updated = { ...settings, language: newLang };
+    setTempSettings((prev) => ({ ...prev, language: newLang }));
     onSaveSettings(updated);
   };
 

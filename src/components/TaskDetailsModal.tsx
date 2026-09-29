@@ -40,7 +40,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
   onOpenFolder,
   nerdStats = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [imgError, setImgError] = useState(false);
   const [copiedField, setCopiedField] = useState<'url' | 'path' | null>(null);
 
@@ -81,7 +81,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">
             <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-            {t('taskDetails.status') === 'Estado' ? 'Completado' : 'Completed'}
+            {t('download.completed')}
           </span>
         );
       case 'downloading':
@@ -105,10 +105,28 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
             {t('download.failed')}
           </span>
         );
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            {t('download.pending')}
+          </span>
+        );
+      case 'probing':
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-semibold bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700">
+            {t('download.probing')}
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+            {t('download.cancelled')}
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 uppercase">
-            {task.status}
+            {t(`download.${task.status}`) || task.status}
           </span>
         );
     }
@@ -235,7 +253,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                 )}
                 {task.total_bytes && task.total_bytes > 0 && (
                   <span className="text-slate-400 dark:text-slate-500 text-[11px] ml-1.5">
-                    ({task.total_bytes.toLocaleString()} {t('taskDetails.bytes')})
+                    ({task.total_bytes.toLocaleString(language === 'es' ? 'es-ES' : 'en-US')} {t('taskDetails.bytes')})
                   </span>
                 )}
               </div>
@@ -361,7 +379,7 @@ export const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({
                     task.status === 'completed' && task.updated_at
                       ? task.updated_at
                       : task.created_at
-                  ).toLocaleString()}
+                  ).toLocaleString(language === 'es' ? 'es-ES' : 'en-US')}
                 </span>
               </div>
             )}

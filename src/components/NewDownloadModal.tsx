@@ -288,8 +288,8 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       setStarting(true);
       try {
         const baseDir = savePath.trim() || undefined;
-        // Clean and sanitize post title for filesystem folder and file naming
-        const rawTitle = (media?.title || fileName || 'galeria_imagenes')
+        const fallbackGalleryTitle = language === 'es' ? 'galeria_imagenes' : 'image_gallery';
+        const rawTitle = (media?.title || fileName || fallbackGalleryTitle)
           .replace(/https?:\/\/\S+/g, '') // remove URLs
           .replace(/[\r\n\t]+/g, ' ') // replace newlines/tabs with space
           .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') // Windows invalid path chars
@@ -300,7 +300,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
 
         const cleanTitle =
           (rawTitle.length > 60 ? rawTitle.slice(0, 60).trim().replace(/[. ]+$/, '') : rawTitle) ||
-          'galeria';
+          (language === 'es' ? 'galeria' : 'gallery');
 
         let targetDir = baseDir;
         if (folderOrganization === 'subfolder' && (gallery.length > 1 || selectedImageIndices.size > 1)) {
@@ -1028,11 +1028,11 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
               <p className="text-[11px] text-slate-600 dark:text-slate-400 bg-white dark:bg-[#1a2332] p-2 border border-slate-300 dark:border-[#384761]">
                 {t('newDownload.galleryNotice', { count: selectedImageIndices.size })}{' '}
                 <code className="text-blue-900 dark:text-blue-400 font-mono font-semibold">
-                  {(fileName || 'imagen').split('.')[0]}_1.jpg
+                  {(fileName || (language === 'es' ? 'imagen' : 'image')).split('.')[0]}_1.jpg
                 </code>
                 ,{' '}
                 <code className="text-blue-900 dark:text-blue-400 font-mono font-semibold">
-                  {(fileName || 'imagen').split('.')[0]}_2.jpg
+                  {(fileName || (language === 'es' ? 'imagen' : 'image')).split('.')[0]}_2.jpg
                 </code>
                 ...
               </p>

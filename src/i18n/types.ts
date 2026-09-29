@@ -57,6 +57,8 @@ export interface TranslationDictionary {
     completed: string;
     failed: string;
     pending: string;
+    cancelled: string;
+    probing: string;
     of: string;
     activeThreads: string;
     threads: string;

@@ -114,8 +114,14 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           return <span className="text-emerald-700 font-bold">{t('download.completed')}</span>;
         case 'failed':
           return <span className="text-red-600 font-bold">{t('download.failed')}</span>;
+        case 'pending':
+          return <span className="text-slate-500 font-semibold">{t('download.pending')}</span>;
+        case 'probing':
+          return <span className="text-cyan-600 font-semibold">{t('download.probing')}</span>;
+        case 'cancelled':
+          return <span className="text-slate-400 font-semibold">{t('download.cancelled')}</span>;
         default:
-          return <span className="text-slate-500">{task.status}</span>;
+          return <span className="text-slate-500">{t(`download.${task.status}`) || task.status}</span>;
       }
     };
 
@@ -405,6 +411,10 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
             </span>
           ) : group.status === 'failed' ? (
             <span className="text-red-600 dark:text-red-400 font-bold">{t('download.failed')}</span>
+          ) : group.status === 'cancelled' ? (
+            <span className="text-slate-400 dark:text-slate-500 font-semibold">{t('download.cancelled')}</span>
+          ) : group.status === 'probing' ? (
+            <span className="text-cyan-600 dark:text-cyan-400 font-semibold">{t('download.probing')}</span>
           ) : (
             <span className="text-slate-600 dark:text-slate-400 font-semibold">{t('download.pending')}</span>
           )}
@@ -563,6 +573,12 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                     <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center justify-center gap-1">
                       <Pause className="w-2.5 h-2.5" /> {t('download.paused')}
                     </span>
+                  ) : task.status === 'pending' ? (
+                    <span className="text-slate-500 dark:text-slate-400 font-semibold">{t('download.pending')}</span>
+                  ) : task.status === 'cancelled' ? (
+                    <span className="text-slate-400 dark:text-slate-500 font-semibold">{t('download.cancelled')}</span>
+                  ) : task.status === 'probing' ? (
+                    <span className="text-cyan-600 dark:text-cyan-400 font-semibold">{t('download.probing')}</span>
                   ) : (
                     <span className="text-red-600 dark:text-red-400 font-bold">{t('download.failed')}</span>
                   )}
