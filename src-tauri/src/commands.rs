@@ -197,3 +197,21 @@ pub fn get_clipboard_text(app: AppHandle) -> Result<String, String> {
     app.clipboard().read_text().map_err(|e| e.to_string())
 }
 
+/// Opens a native folder selection dialog and returns the chosen path.
+#[tauri::command]
+pub async fn select_folder(default_path: Option<String>) -> Result<Option<String>, String> {
+    let mut dialog = rfd::AsyncFileDialog::new().set_title("Select Destination Folder");
+    if let Some(ref path) = default_path {
+        let p = std::path::Path::new(path);
+        if p.exists() && p.is_dir() {
+            dialog = dialog.set_directory(p);
+        } else if let Some(parent) = p.parent() {
+            if parent.exists() && parent.is_dir() {
+                dialog = dialog.set_directory(parent);
+            }
+        }
+    }
+    let folder = dialog.pick_folder().await;
+    Ok(folder.map(|f| f.path().to_string_lossy().to_string()))
+}
+

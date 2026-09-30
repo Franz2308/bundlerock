@@ -180,3 +180,13 @@ export async function readClipboardText(): Promise<string> {
   }
 }
 
+export async function selectFolder(defaultPath?: string): Promise<string | null> {
+  try {
+    const result = await invoke<string | null>('select_folder', { defaultPath });
+    return result || null;
+  } catch (err) {
+    console.error('Failed to open native folder picker:', err);
+    return null;
+  }
+}
+

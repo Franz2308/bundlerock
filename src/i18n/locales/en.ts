@@ -138,6 +138,8 @@ export const en: TranslationDictionary = {
     fileNamePlaceholder: 'filename.ext (optional, auto-detected)',
     destinationFolder: 'Destination folder:',
     destinationPlaceholder: 'Save path (Downloads folder by default)',
+    browseFolder: 'Browse...',
+    browseTooltip: 'Select destination folder',
     cancel: 'Cancel',
     downloadNow: 'Download Now',
     downloadImagesSingular: 'Download 1 image',

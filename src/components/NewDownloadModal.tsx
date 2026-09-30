@@ -17,6 +17,7 @@ import {
   CheckSquare,
   FolderPlus,
   Folder,
+  FolderOpen,
   Check,
 } from 'lucide-react';
 import { ExtractorStatus, MediaFormatOption, ProbeResult } from '../types/download';
@@ -27,6 +28,7 @@ import {
   checkExtractorStatus,
   installExtractor,
   readClipboardText,
+  selectFolder,
 } from '../services/downloadApi';
 import { cn } from '../utils/cn';
 import { MultiFormatConfirmModal } from './MultiFormatConfirmModal';
@@ -269,6 +271,17 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       }
     } catch (e) {
       console.warn('Paste failed:', e);
+    }
+  };
+
+  const handleBrowseFolder = async () => {
+    try {
+      const selected = await selectFolder(savePath.trim() || undefined);
+      if (selected) {
+        setSavePath(selected);
+      }
+    } catch (e) {
+      console.warn('Folder selection failed:', e);
     }
   };
 
@@ -1052,13 +1065,24 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('newDownload.destinationFolder')}
             </label>
-            <input
-              type="text"
-              value={savePath}
-              onChange={(e) => setSavePath(e.target.value)}
-              placeholder={t('newDownload.destinationPlaceholder')}
-              className="w-full bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={savePath}
+                onChange={(e) => setSavePath(e.target.value)}
+                placeholder={t('newDownload.destinationPlaceholder')}
+                className="flex-1 bg-white dark:bg-[#1a2332] border border-slate-400 dark:border-[#384761] px-2.5 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-600 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleBrowseFolder}
+                title={t('newDownload.browseTooltip')}
+                className="px-2.5 py-1.5 bg-slate-200 dark:bg-[#192231] hover:bg-slate-300 dark:hover:bg-[#222e42] border border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 text-xs shadow-sm active:shadow-inner flex items-center gap-1.5 cursor-pointer shrink-0 font-medium transition-colors"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+                <span>{t('newDownload.browseFolder')}</span>
+              </button>
+            </div>
           </div>
         </div>
 

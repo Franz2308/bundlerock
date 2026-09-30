@@ -138,6 +138,8 @@ export interface TranslationDictionary {
     fileNamePlaceholder: string;
     destinationFolder: string;
     destinationPlaceholder: string;
+    browseFolder: string;
+    browseTooltip: string;
     cancel: string;
     downloadNow: string;
     downloadImagesSingular: string;

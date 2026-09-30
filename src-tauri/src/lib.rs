@@ -51,7 +51,8 @@ pub fn run() {
             toggle_maximize_window,
             is_window_maximized,
             close_window,
-            get_clipboard_text
+            get_clipboard_text,
+            select_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
