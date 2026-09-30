@@ -38,6 +38,7 @@ interface NewDownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultConnections: number;
+  initialUrl?: string;
   onStartDownload: (params: {
     url: string;
     destinationPath?: string;
@@ -67,6 +68,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   isOpen,
   onClose,
   defaultConnections,
+  initialUrl,
   onStartDownload,
 }) => {
   const { t, language } = useTranslation();
@@ -120,6 +122,13 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       .then((status) => setExtractorStatus(status))
       .catch(() => {});
 
+    // If initialUrl was provided (e.g. from browser extension), probe it directly
+    if (initialUrl && (initialUrl.startsWith('http://') || initialUrl.startsWith('https://'))) {
+      setUrl(initialUrl);
+      handleProbe(initialUrl);
+      return;
+    }
+
     // Check clipboard for valid URL
     const checkClipboard = async () => {
       try {
@@ -135,7 +144,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     };
 
     checkClipboard();
-  }, [isOpen]);
+  }, [isOpen, initialUrl]);
 
   const handleProbe = async (urlToProbe: string) => {
     const targetUrl = urlToProbe.trim();

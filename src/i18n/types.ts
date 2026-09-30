@@ -210,7 +210,17 @@ export interface TranslationDictionary {
     tabLanguage: string;
     tabInterface: string;
     tabNetwork: string;
+    tabBrowser: string;
     tabAbout: string;
+    browserTitle: string;
+    browserServerStatus: string;
+    browserServerRunning: string;
+    browserInstallSteps: string;
+    browserStep1: string;
+    browserStep2: string;
+    browserStep3: string;
+    browserOpenFolder: string;
+    browserUsageNotice: string;
     themeTitle: string;
     themeDesc: string;
     lightMode: string;

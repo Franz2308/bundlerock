@@ -12,12 +12,29 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::{watch, RwLock};
 use url::Url;
 
+/// Normalizes temporary or fragmented Reddit media URLs (e.g., packaged-media.redd.it)
+/// to canonical v.redd.it media redirects which yt-dlp automatically follows to the post.
+pub fn normalize_reddit_url(url_str: &str) -> String {
+    let clean = url_str.trim();
+    if clean.contains("packaged-media.redd.it/") {
+        if let Some(idx) = clean.find("packaged-media.redd.it/") {
+            let after = &clean[idx + "packaged-media.redd.it/".len()..];
+            let media_id = after.split('/').next().unwrap_or("").split('?').next().unwrap_or("");
+            if !media_id.is_empty() {
+                return format!("https://v.redd.it/{media_id}");
+            }
+        }
+    }
+    clean.to_string()
+}
+
 /// Detects if a URL belongs to a supported social media platform and returns its classification and level:
 /// - Level 1: YouTube, Twitter / X
 /// - Level 2: Facebook
 /// - Level 3: Reddit
 pub fn detect_platform(url_str: &str) -> Option<(SocialMediaPlatform, u8, String)> {
-    let clean = url_str.trim();
+    let normalized = normalize_reddit_url(url_str);
+    let clean = normalized.trim();
     if clean.is_empty() {
         return None;
     }
@@ -674,6 +691,9 @@ pub async fn probe_media(
     client: &reqwest::Client,
     target_url: &str,
 ) -> Result<MediaMetadata, String> {
+    let normalized_url = normalize_reddit_url(target_url);
+    let target_url = normalized_url.as_str();
+
     let (platform, level, platform_display) = detect_platform(target_url).unwrap_or((
         SocialMediaPlatform::Other,
         1,
@@ -1645,7 +1665,8 @@ pub async fn download_media_stream(
 
     let mut cmd = tokio::process::Command::new(&ytdlp_path);
     cmd.env("PYTHONUNBUFFERED", "1");
-    cmd.arg(&task.url);
+    let target_media_url = normalize_reddit_url(&task.url);
+    cmd.arg(&target_media_url);
 
     // Multi-threaded fragment downloading for DASH and HLS streams
     let concurrent_frags = task.num_connections.max(1);
@@ -2393,5 +2414,17 @@ mod tests {
         assert_eq!(metadata.formats[0].ext, "gif");
         assert_eq!(metadata.formats[1].format_id, "twitter-mp4");
         assert_eq!(metadata.formats[1].ext, "mp4");
+    }
+
+    #[test]
+    fn test_normalize_reddit_packaged_media_url() {
+        let raw = "https://packaged-media.redd.it/wzdp7g5z5psh1/pb/m2-res_720p.mp4?m=DASHPlaylist.mpd&var=sgpssan&v=1&e=1790823600&s=f2d0a14f3db7aeff83ca2ab39f509cfc9135c87e";
+        assert_eq!(
+            normalize_reddit_url(raw),
+            "https://v.redd.it/wzdp7g5z5psh1"
+        );
+
+        let normal_post = "https://www.reddit.com/r/memes/comments/123/title/";
+        assert_eq!(normalize_reddit_url(normal_post), normal_post);
     }
 }

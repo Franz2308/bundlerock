@@ -183,10 +183,15 @@ pub fn is_window_maximized(window: Window) -> Result<bool, String> {
     window.is_maximized().map_err(|e| e.to_string())
 }
 
-/// Closes the application window immediately and exits cleanly.
+/// Hides the application window to system tray.
 #[tauri::command]
-pub fn close_window(window: Window, app: AppHandle) -> Result<(), String> {
-    let _ = window.destroy();
+pub fn close_window(window: Window) -> Result<(), String> {
+    window.hide().map_err(|e| e.to_string())
+}
+
+/// Closes the application completely and exits.
+#[tauri::command]
+pub fn exit_app(app: AppHandle) -> Result<(), String> {
     app.exit(0);
     std::process::exit(0);
 }
@@ -213,5 +218,13 @@ pub async fn select_folder(default_path: Option<String>) -> Result<Option<String
     }
     let folder = dialog.pick_folder().await;
     Ok(folder.map(|f| f.path().to_string_lossy().to_string()))
+}
+
+/// Retrieves any pending URL passed when BundleRock was launched via bundlerock:// protocol.
+#[tauri::command]
+pub fn get_pending_protocol_url(
+    state: State<'_, crate::PendingProtocolUrl>,
+) -> Option<String> {
+    state.0.lock().unwrap().take()
 }
 

@@ -1,0 +1,36 @@
+/* BundleRock Downloader - Content Stylesheet
+ * Brand-aligned visual system & isolated host styling for floating video button
+ * Design tokens: Slate 900 (#0f172a), Navy (#1a365d, #244a77), Cyan / Sky (#38bdf8)
+ */
+
+:root {
+  --br-color-bg: rgba(15, 23, 42, 0.88);
+  --br-color-bg-hover: rgba(15, 23, 42, 0.95);
+  --br-color-border: rgba(56, 189, 248, 0.32);
+  --br-color-border-hover: rgba(56, 189, 248, 0.7);
+  --br-color-glow: rgba(56, 189, 248, 0.35);
+  --br-emblem-gradient-from: #244a77;
+  --br-emblem-gradient-to: #1a365d;
+}
+
+/* Isolated Host Container (prevents host website CSS leakage) */
+#bundlerock-floating-host {
+  all: initial !important;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  filter: none !important;
+}

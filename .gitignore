@@ -29,3 +29,4 @@ src-tauri/target/
 src-tauri/gen/
 **/*.rs.bk
 Cargo.lock
+*.zip

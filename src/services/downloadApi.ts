@@ -190,3 +190,32 @@ export async function selectFolder(defaultPath?: string): Promise<string | null>
   }
 }
 
+export async function exitApp(): Promise<void> {
+  await invoke('exit_app');
+}
+
+export async function openExtensionFolder(): Promise<void> {
+  try {
+    await openPath('browser-extension');
+  } catch (err) {
+    console.warn('Failed to open extension folder:', err);
+  }
+}
+
+export function onExternalDownloadRequest(
+  callback: (payload: { url: string; page_url?: string }) => void
+): Promise<UnlistenFn> {
+  return listen<{ url: string; page_url?: string }>('external-download-request', (event) => {
+    callback(event.payload);
+  });
+}
+
+export async function getPendingProtocolUrl(): Promise<string | null> {
+  try {
+    return await invoke<string | null>('get_pending_protocol_url');
+  } catch (err) {
+    console.warn('Failed to get pending protocol url:', err);
+    return null;
+  }
+}
+

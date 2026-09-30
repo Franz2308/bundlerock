@@ -27,6 +27,8 @@ import {
   onDownloadFinished,
   checkExtractorStatus,
   installExtractor,
+  onExternalDownloadRequest,
+  getPendingProtocolUrl,
 } from './services/downloadApi';
 import { TitleBar } from './components/TitleBar';
 import { SettingsModal } from './components/SettingsModal';
@@ -53,10 +55,44 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
   const [inspectingTask, setInspectingTask] = useState<DownloadTask | null>(null);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [externalUrl, setExternalUrl] = useState<string | null>(null);
   const [extractorStatus, setExtractorStatus] = useState<{ ytdlp_installed: boolean; ffmpeg_installed: boolean }>({
     ytdlp_installed: false,
     ffmpeg_installed: false,
   });
+
+  // Listen for downloads requested from browser extension via local HTTP server or custom protocol
+  useEffect(() => {
+    // Check if launched via custom protocol (e.g. bundlerock://...)
+    getPendingProtocolUrl()
+      .then((url) => {
+        if (url) {
+          setExternalUrl(url);
+          setIsNewDownloadOpen(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to get pending protocol url:', err);
+      });
+
+    let unlisten: (() => void) | undefined;
+    onExternalDownloadRequest((payload) => {
+      if (payload && payload.url) {
+        setExternalUrl(payload.url);
+        setIsNewDownloadOpen(true);
+      }
+    })
+      .then((unsub) => {
+        unlisten = unsub;
+      })
+      .catch((err) => {
+        console.warn('Failed to listen to external-download-request:', err);
+      });
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
 
   // Apply dark class to document element on theme change
   useEffect(() => {
@@ -722,8 +758,12 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
 
       <NewDownloadModal
         isOpen={isNewDownloadOpen}
-        onClose={() => setIsNewDownloadOpen(false)}
+        onClose={() => {
+          setIsNewDownloadOpen(false);
+          setExternalUrl(null);
+        }}
         defaultConnections={settings.defaultConnections}
+        initialUrl={externalUrl || undefined}
         onStartDownload={handleStartDownload}
       />
       <TaskDetailsModal
