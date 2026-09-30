@@ -20,6 +20,12 @@ Its user interface prioritizes clarity, information density, and a classic Win32
 * **Efficient Disk I/O:** Asynchronous disk writing handled via Tokio, preventing UI latency and minimizing file reassembly overhead.
 * **Real-Time Progress Telemetry:** Smooth streaming of transfer speed, percentage, and estimated time remaining (ETA) without buffer stalls on Windows.
 
+### Browser Extension Integration (IDM Style)
+* **One-Click Media Capture:** Floating overlay button positioned above videos on YouTube, TikTok, Facebook Reels, Twitter/X, and Reddit for instant download without copying URLs.
+* **Context Menu Support:** Native browser right-click context menu ("Descargar con BundleRock") on links, images, and audio/video elements.
+* **Custom Protocol Handler (`bundlerock://`):** Automatically boots BundleRock if closed with standard Windows external protocol authorization prompts.
+* **System Tray Residency:** Background minimization with zero noticeable idle CPU/RAM usage.
+
 ### Multimedia Extraction and Galleries
 * **Multi-Platform Support:** Decoupled stream downloading (video and audio) from YouTube, Twitter/X, Facebook, and Reddit.
 * **Image Gallery Extraction:** Detection of multi-image posts (Twitter/X, Reddit) with an interactive checklist selector and organization options (create dedicated subfolder or save loose files).
@@ -136,10 +142,31 @@ npm run tauri build
 
 Final executables and installers will be generated at:
 * **Portable Executable:** `src-tauri/target/release/bundlerock.exe`
-* **NSIS Installer:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.2_x64-setup.exe`
+* **NSIS Installer:** `src-tauri/target/release/bundle/nsis/BundleRock_0.2.3_x64-setup.exe`
+* **Browser Extension Package:** `browser-extension-v0.2.3.zip`
+
+---
+
+## Browser Extension Installation & Sharing
+
+You can distribute the browser extension alongside the application by sharing the pre-packaged `browser-extension-v0.2.3.zip` file.
+
+### Instrucciones que debes darle a quien lo reciba (Español)
+1. Descargar y descomprimir el archivo `.zip` en cualquier carpeta de su equipo.
+2. En su navegador (Chrome, Edge o Brave), entrar a la barra de direcciones y escribir `chrome://extensions` o `edge://extensions`.
+3. Activar el interruptor **"Modo de desarrollador"** (arriba a la derecha).
+4. Hacer clic en el botón **"Cargar descomprimida"** y seleccionar la carpeta que descomprimió.
+5. Con eso la extensión queda instalada y funcionando permanentemente.
+
+### Instructions to share with recipients (English)
+1. Download and extract the `.zip` archive to any directory on your system.
+2. In your browser (Chrome, Edge, or Brave), navigate to `chrome://extensions` or `edge://extensions`.
+3. Enable the **"Developer mode"** toggle in the top-right corner.
+4. Click the **"Load unpacked"** button and select the extracted folder.
+5. The extension is now permanently installed and ready to capture downloads.
 
 ---
 
 ## Distribution and Pre-compiled Binaries
 
-Installers and standalone binaries are available on the [Releases page](https://github.com/Franz2308/bundlerock/releases).
+Installers, standalone binaries, and extension packages are available on the [Releases page](https://github.com/Franz2308/bundlerock/releases).
