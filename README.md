@@ -147,23 +147,23 @@ Final executables and installers will be generated at:
 
 ---
 
-## Browser Extension Installation & Sharing
+## Browser Extension Installation
 
-You can distribute the browser extension alongside the application by sharing the pre-packaged `browser-extension-v0.2.3.zip` file.
+To integrate BundleRock with your web browser (Chrome, Edge, Brave, or Chromium-based browsers), install the companion extension:
 
-### Instrucciones que debes darle a quien lo reciba (Español)
-1. Descargar y descomprimir el archivo `.zip` en cualquier carpeta de su equipo.
-2. En su navegador (Chrome, Edge o Brave), entrar a la barra de direcciones y escribir `chrome://extensions` o `edge://extensions`.
-3. Activar el interruptor **"Modo de desarrollador"** (arriba a la derecha).
-4. Hacer clic en el botón **"Cargar descomprimida"** y seleccionar la carpeta que descomprimió.
-5. Con eso la extensión queda instalada y funcionando permanentemente.
+### Instalación de la Extensión (Español)
+1. Descarga y descomprime el archivo `browser-extension-v0.2.3.zip` (disponible en la sección de [Releases](https://github.com/Franz2308/bundlerock/releases)) en cualquier carpeta de tu equipo.
+2. En tu navegador (Chrome, Edge o Brave), escribe `chrome://extensions` o `edge://extensions` en la barra de direcciones.
+3. Activa el interruptor **"Modo de desarrollador"** en la esquina superior derecha.
+4. Haz clic en el botón **"Cargar descomprimida"** y selecciona la carpeta descomprimida.
+5. La extensión quedará instalada y lista para capturar descargas automáticamente mediante clic derecho o el botón flotante sobre videos.
 
-### Instructions to share with recipients (English)
-1. Download and extract the `.zip` archive to any directory on your system.
-2. In your browser (Chrome, Edge, or Brave), navigate to `chrome://extensions` or `edge://extensions`.
+### Extension Installation Guide (English)
+1. Download and extract the `browser-extension-v0.2.3.zip` package (available in the [Releases](https://github.com/Franz2308/bundlerock/releases) section) to any folder on your system.
+2. In your browser (Chrome, Edge, or Brave), navigate to `chrome://extensions` or `edge://extensions` in the address bar.
 3. Enable the **"Developer mode"** toggle in the top-right corner.
 4. Click the **"Load unpacked"** button and select the extracted folder.
-5. The extension is now permanently installed and ready to capture downloads.
+5. The extension is now permanently installed and ready to capture downloads with a single click or via the floating video button.
 
 ---
 
