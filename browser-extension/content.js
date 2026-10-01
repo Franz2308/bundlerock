@@ -1087,16 +1087,22 @@
       return;
     }
 
-    // Throttle hit-testing
+    // Throttle hit-testing to 90ms (imperceptible to human eye, saves layout reflows)
     const now = Date.now();
-    if (now - lastMouseMoveTime < 50) return;
+    if (now - lastMouseMoveTime < 90) return;
     lastMouseMoveTime = now;
 
-    // Detect video element under coordinates (piercing overlays and web component hosts)
+    // Fast-path: If page has no video elements at all, skip expensive hit-testing completely
+    const hasVideos = document.getElementsByTagName("video").length > 0;
+    if (!hasVideos && !currentTargetVideo) return;
+
+    // Detect video element under coordinates (direct target, closest, or piercing overlays)
     let foundVideo = null;
-    if (e.target instanceof HTMLVideoElement) {
+    if (e.target instanceof HTMLVideoElement || e.target.tagName === "VIDEO") {
       foundVideo = e.target;
-    } else {
+    } else if (e.target.closest && e.target.closest("video")) {
+      foundVideo = e.target.closest("video");
+    } else if (hasVideos) {
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
       for (const el of elements) {
         if (el instanceof HTMLVideoElement || el.tagName === "VIDEO") {
@@ -1131,8 +1137,8 @@
     }
   }
 
+  // Pointer events cover all mouse, stylus, and touch pointers without duplicate mousemove listener
   document.addEventListener("pointermove", handlePointerMove, { passive: true });
-  document.addEventListener("mousemove", handlePointerMove, { passive: true });
 
   document.addEventListener("mouseleave", () => {
     isHoveringVideo = false;

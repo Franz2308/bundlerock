@@ -189,9 +189,19 @@ pub fn close_window(window: Window) -> Result<(), String> {
     window.hide().map_err(|e| e.to_string())
 }
 
+/// Cancels any active URL probe in progress.
+#[tauri::command]
+pub fn cancel_probe(manager: State<'_, DownloadManager>) {
+    manager.cancel_probe();
+}
+
 /// Closes the application completely and exits.
 #[tauri::command]
-pub fn exit_app(app: AppHandle) -> Result<(), String> {
+pub async fn exit_app(
+    app: AppHandle,
+    manager: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    manager.cancel_all_active().await;
     app.exit(0);
     std::process::exit(0);
 }

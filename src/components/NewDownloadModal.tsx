@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   X,
   Download,
@@ -24,6 +24,7 @@ import { ExtractorStatus, MediaFormatOption, ProbeResult } from '../types/downlo
 import { formatBytes } from '../utils/formatters';
 import {
   probeUrl,
+  cancelProbe,
   getDefaultDirectory,
   checkExtractorStatus,
   installExtractor,
@@ -94,9 +95,18 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
   const [folderOrganization, setFolderOrganization] = useState<'subfolder' | 'loose'>('subfolder');
   const [activeTab, setActiveTab] = useState<'video' | 'gallery'>('video');
 
+  const lastProbedUrlRef = useRef<string>('');
+  const probeTimeoutRef = useRef<number | null>(null);
+
   // Initialize and check clipboard on open
   useEffect(() => {
     if (!isOpen) {
+      if (probeTimeoutRef.current) {
+        clearTimeout(probeTimeoutRef.current);
+        probeTimeoutRef.current = null;
+      }
+      cancelProbe().catch(() => {});
+      lastProbedUrlRef.current = '';
       setUrl('');
       setFileName('');
       setProbeResult(null);
@@ -125,18 +135,21 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     // If initialUrl was provided (e.g. from browser extension), probe it directly
     if (initialUrl && (initialUrl.startsWith('http://') || initialUrl.startsWith('https://'))) {
       setUrl(initialUrl);
-      handleProbe(initialUrl);
+      handleProbe(initialUrl, true);
       return;
     }
 
-    // Check clipboard for valid URL
+    // Check clipboard for valid URL with debounce
     const checkClipboard = async () => {
       try {
         const text = await readClipboardText();
         const trimmed = (text || '').trim();
         if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
           setUrl(trimmed);
-          handleProbe(trimmed);
+          if (probeTimeoutRef.current) clearTimeout(probeTimeoutRef.current);
+          probeTimeoutRef.current = window.setTimeout(() => {
+            handleProbe(trimmed);
+          }, 250);
         }
       } catch (e) {
         console.warn('Clipboard read error:', e);
@@ -146,9 +159,19 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
     checkClipboard();
   }, [isOpen, initialUrl]);
 
-  const handleProbe = async (urlToProbe: string) => {
+  const handleProbe = async (urlToProbe: string, force = false) => {
     const targetUrl = urlToProbe.trim();
     if (!targetUrl) return;
+
+    if (!force && targetUrl === lastProbedUrlRef.current && probeResult) {
+      return;
+    }
+    lastProbedUrlRef.current = targetUrl;
+
+    if (probeTimeoutRef.current) {
+      clearTimeout(probeTimeoutRef.current);
+      probeTimeoutRef.current = null;
+    }
 
     setProbing(true);
     setProbeError(null);
@@ -276,7 +299,10 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
       const trimmed = (text || '').trim();
       if (trimmed) {
         setUrl(trimmed);
-        handleProbe(trimmed);
+        if (probeTimeoutRef.current) clearTimeout(probeTimeoutRef.current);
+        probeTimeoutRef.current = window.setTimeout(() => {
+          handleProbe(trimmed, true);
+        }, 150);
       }
     } catch (e) {
       console.warn('Paste failed:', e);
@@ -590,7 +616,7 @@ export const NewDownloadModal: React.FC<NewDownloadModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleProbe(url)}
+                onClick={() => handleProbe(url, true)}
                 disabled={!url.trim() || probing}
                 className="px-2.5 py-1.5 bg-slate-100 dark:bg-[#192231] hover:bg-slate-200 dark:hover:bg-[#222e42] hover:border-slate-500 dark:hover:border-[#425470] disabled:opacity-50 border border-slate-400 dark:border-[#303f56] text-slate-800 dark:text-slate-200 text-xs shadow-xs active:shadow-inner active:bg-slate-300 dark:active:bg-[#2b3a52] flex items-center gap-1.5 cursor-pointer shrink-0 font-medium transition-colors rounded-xs"
                 title={t('newDownload.inspectTooltip')}

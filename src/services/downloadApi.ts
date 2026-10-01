@@ -26,6 +26,10 @@ export async function probeUrl(url: string): Promise<ProbeResult> {
   return await invoke<ProbeResult>('probe_url', { url });
 }
 
+export async function cancelProbe(): Promise<void> {
+  await invoke('cancel_probe');
+}
+
 export async function startDownload(params: StartDownloadParams): Promise<DownloadTask> {
   return await invoke<DownloadTask>('start_download', {
     url: params.url,

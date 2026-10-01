@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod engine;
+pub mod job_object;
 pub mod manager;
 pub mod media_extractor;
 pub mod models;
@@ -28,6 +29,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
+            // Guarantee child processes terminate with parent via Windows Job Object
+            job_object::init_process_job_object();
+
             app.manage(DownloadManager::new(app.handle().clone()));
 
             // Register Windows bundlerock:// protocol in HKCU
@@ -68,7 +72,12 @@ pub fn run() {
                             }
                         }
                         "quit" => {
-                            std::process::exit(0);
+                            let app_clone = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let mgr = app_clone.state::<DownloadManager>();
+                                mgr.cancel_all_active().await;
+                                std::process::exit(0);
+                            });
                         }
                         _ => {}
                     })
@@ -107,6 +116,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             probe_url,
+            cancel_probe,
             start_download,
             pause_download,
             resume_download,

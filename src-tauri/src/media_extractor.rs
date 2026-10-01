@@ -690,6 +690,7 @@ pub async fn probe_facebook_photo_or_post(
 pub async fn probe_media(
     client: &reqwest::Client,
     target_url: &str,
+    cancel_rx: Option<tokio::sync::watch::Receiver<bool>>,
 ) -> Result<MediaMetadata, String> {
     let normalized_url = normalize_reddit_url(target_url);
     let target_url = normalized_url.as_str();
@@ -710,7 +711,10 @@ pub async fn probe_media(
         let mut cmd = tokio::process::Command::new(&ytdlp_path);
         cmd.arg("--dump-single-json")
             .arg("--no-warnings")
-            .arg("--skip-download");
+            .arg("--skip-download")
+            .arg("--socket-timeout").arg("6")
+            .arg("--extractor-retries").arg("1")
+            .arg("--no-cache-dir");
 
         if platform == SocialMediaPlatform::YouTube {
             cmd.arg("--no-playlist");
@@ -722,11 +726,51 @@ pub async fn probe_media(
 
         #[cfg(windows)]
         {
-            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            // CREATE_NO_WINDOW (0x08000000) | BELOW_NORMAL_PRIORITY_CLASS (0x00004000)
+            cmd.creation_flags(0x08000000 | 0x00004000);
         }
 
-        let output = tokio::time::timeout(Duration::from_secs(20), cmd.output()).await;
-        if let Ok(Ok(out)) = output {
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+        cmd.kill_on_drop(true);
+
+        let child = cmd.spawn().map_err(|e| format!("Error iniciando yt-dlp: {e}"))?;
+        let pid = child.id();
+
+        let mut cancel_recv = cancel_rx.unwrap_or_else(|| {
+            let (_dummy_tx, dummy_rx) = watch::channel(false);
+            dummy_rx
+        });
+
+        let output_res = tokio::select! {
+            res = child.wait_with_output() => {
+                res.map_err(|e| format!("Error esperando salida de yt-dlp: {e}"))
+            }
+            _ = cancel_recv.changed() => {
+                #[cfg(windows)]
+                if let Some(p) = pid {
+                    use std::os::windows::process::CommandExt;
+                    let _ = std::process::Command::new("taskkill")
+                        .args(&["/F", "/PID", &p.to_string(), "/T"])
+                        .creation_flags(0x08000000)
+                        .output();
+                }
+                return Err("Sondeo cancelado por el usuario o nueva solicitud".to_string());
+            }
+            _ = tokio::time::sleep(Duration::from_secs(12)) => {
+                #[cfg(windows)]
+                if let Some(p) = pid {
+                    use std::os::windows::process::CommandExt;
+                    let _ = std::process::Command::new("taskkill")
+                        .args(&["/F", "/PID", &p.to_string(), "/T"])
+                        .creation_flags(0x08000000)
+                        .output();
+                }
+                return Err("Tiempo de espera agotado al sondear multimedia (12s)".to_string());
+            }
+        };
+
+        if let Ok(out) = output_res {
             if out.status.success() {
                 if let Ok(json_str) = String::from_utf8(out.stdout) {
                     let trimmed = json_str.trim();
@@ -1714,11 +1758,13 @@ pub async fn download_media_stream(
 
     #[cfg(windows)]
     {
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        // CREATE_NO_WINDOW (0x08000000) | BELOW_NORMAL_PRIORITY_CLASS (0x00004000)
+        cmd.creation_flags(0x08000000 | 0x00004000);
     }
 
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
+    cmd.kill_on_drop(true);
 
     let mut child = cmd
         .spawn()
@@ -1964,14 +2010,17 @@ pub async fn download_media_stream(
 
                 let mut fcmd = tokio::process::Command::new(ffp);
                 fcmd.arg("-y")
+                    .arg("-threads").arg("4")
                     .arg("-i").arg(&final_resolved_file)
                     .arg("-vf").arg("fps=15,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse")
                     .arg(&gif_target);
 
                 #[cfg(windows)]
                 {
-                    fcmd.creation_flags(0x08000000);
+                    // CREATE_NO_WINDOW (0x08000000) | BELOW_NORMAL_PRIORITY_CLASS (0x00004000)
+                    fcmd.creation_flags(0x08000000 | 0x00004000);
                 }
+                fcmd.kill_on_drop(true);
 
                 if let Ok(f_status) = fcmd.status().await {
                     if f_status.success() && gif_target.exists() {

@@ -31,9 +31,24 @@ pub struct DownloadManager {
     controllers: Arc<Mutex<HashMap<String, ActiveController>>>,
     client: reqwest::Client,
     tasks_file: PathBuf,
+    active_probe_tx: Arc<std::sync::Mutex<Option<watch::Sender<bool>>>>,
 }
 
 impl DownloadManager {
+    pub fn cleanup_temp_binaries() {
+        let bin_dir = crate::media_extractor::get_bundlerock_bin_dir();
+        if let Ok(entries) = std::fs::read_dir(&bin_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    if ext == "tmp" {
+                        let _ = std::fs::remove_file(path);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn save_tasks_map(tasks: &HashMap<String, DownloadTask>, path: &PathBuf) {
         let tasks_vec: Vec<&crate::models::DownloadTask> = tasks.values().collect();
         if let Ok(json) = serde_json::to_string(&tasks_vec) {
@@ -67,6 +82,7 @@ impl DownloadManager {
         if let Some(parent) = tasks_file.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
+        Self::cleanup_temp_binaries();
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -77,6 +93,7 @@ impl DownloadManager {
             controllers: Arc::new(Mutex::new(HashMap::new())),
             client,
             tasks_file,
+            active_probe_tx: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
@@ -86,6 +103,24 @@ impl DownloadManager {
         let _ = std::fs::create_dir_all(&data_dir);
         let tasks_file = data_dir.join("tasks.json");
         Self::new_with_path(tasks_file)
+    }
+
+    /// Cancels any currently active probe immediately.
+    pub fn cancel_probe(&self) {
+        if let Ok(mut guard) = self.active_probe_tx.lock() {
+            if let Some(tx) = guard.take() {
+                let _ = tx.send(true);
+            }
+        }
+    }
+
+    /// Cancels all active download tasks and ongoing probes (used during app exit/shutdown).
+    pub async fn cancel_all_active(&self) {
+        self.cancel_probe();
+        let ctrls = self.controllers.lock().await;
+        for ctrl in ctrls.values() {
+            let _ = ctrl.cancel_tx.send(true);
+        }
     }
 
     /// Probes a URL to discover size, range support, and filename.
@@ -99,8 +134,22 @@ impl DownloadManager {
             clean_url.to_string()
         };
 
+        // Create new cancel channel and abort any previous probe
+        let (cancel_tx, cancel_rx) = watch::channel(false);
+        {
+            if let Ok(mut guard) = self.active_probe_tx.lock() {
+                if let Some(old_tx) = guard.replace(cancel_tx) {
+                    let _ = old_tx.send(true);
+                }
+            }
+        }
+
         if let Some((_platform, _level, _display)) = detect_platform(&normalized_url) {
-            match probe_media(&self.client, &normalized_url).await {
+            let probe_res = probe_media(&self.client, &normalized_url, Some(cancel_rx)).await;
+            if let Ok(mut guard) = self.active_probe_tx.lock() {
+                let _ = guard.take();
+            }
+            match probe_res {
                 Ok(media_info) => {
                     let has_formats = !media_info.formats.is_empty();
                     let default_ext = if has_formats {
