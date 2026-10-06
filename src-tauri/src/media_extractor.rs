@@ -2051,6 +2051,7 @@ pub async fn download_media_stream(
         task.progress_percentage = 100.0;
         task.speed_bps = 0;
         task.status = DownloadStatus::Completed;
+        task.completed_at = Some(crate::models::now_millis());
         task.stage_message = Some("Descarga y procesamiento completado con éxito".to_string());
         task.updated_at = crate::models::now_millis();
 

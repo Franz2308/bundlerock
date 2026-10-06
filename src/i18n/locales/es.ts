@@ -45,6 +45,7 @@ export const es: TranslationDictionary = {
     gridName: 'Nombre de Archivo / Origen',
     gridSize: 'Tamaño / Progreso',
     gridSpeed: 'Velocidad / ETA',
+    gridDate: 'Fecha de Descarga',
     gridStatus: 'Estado',
     gridAction: 'Acción',
     globalSpeed: 'Velocidad Global:',

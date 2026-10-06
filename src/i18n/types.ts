@@ -45,6 +45,7 @@ export interface TranslationDictionary {
     gridName: string;
     gridSize: string;
     gridSpeed: string;
+    gridDate: string;
     gridStatus: string;
     gridAction: string;
     globalSpeed: string;

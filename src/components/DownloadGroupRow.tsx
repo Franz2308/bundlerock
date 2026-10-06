@@ -19,6 +19,7 @@ import {
   formatBytes,
   formatSpeed,
   formatETA,
+  formatDateTime,
   getFileCategory,
 } from '../utils/formatters';
 import { useTranslation } from '../i18n';
@@ -72,7 +73,7 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
   onOpenFolder,
   onInspectTask,
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [imgError, setImgError] = useState(false);
 
   const isCompact = viewMode === 'compact';
@@ -197,6 +198,10 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
         <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] min-w-0">
           <span className="font-bold text-red-600 dark:text-red-400 truncate">{speedStr}</span>
           <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0 ml-1">{etaStr}</span>
+        </div>
+
+        <div className="text-center min-w-0 truncate text-[10px] font-mono text-slate-600 dark:text-slate-400" title={formatDateTime(task.completed_at ?? task.created_at, language)}>
+          {formatDateTime(task.completed_at ?? task.created_at, language)}
         </div>
 
         <div className="text-center min-w-0 truncate">{getStatusBadge()}</div>
@@ -396,6 +401,11 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
           </span>
         </div>
 
+        {/* Group Date (latest finished format) */}
+        <div className="text-center min-w-0 truncate text-[10px] font-mono text-slate-600 dark:text-slate-400" title={formatDateTime(Math.max(...group.tasks.map((t) => t.completed_at ?? 0)) || group.createdAt, language)}>
+          {formatDateTime(Math.max(...group.tasks.map((t) => t.completed_at ?? 0)) || group.createdAt, language)}
+        </div>
+
         {/* Group Status */}
         <div className="text-center min-w-0 truncate">
           {isDownloading ? (
@@ -558,6 +568,11 @@ export const DownloadGroupRow: React.FC<DownloadGroupRowProps> = ({
                 <div className="flex items-center justify-between px-1 text-[10px] sm:text-[11px] min-w-0">
                   <span className="font-bold text-red-600 dark:text-red-400 truncate">{taskSpeedStr}</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300 shrink-0 ml-1">{taskEtaStr}</span>
+                </div>
+
+                {/* Date */}
+                <div className="text-center min-w-0 truncate text-[10px] font-mono text-slate-600 dark:text-slate-400" title={formatDateTime(task.completed_at ?? task.created_at, language)}>
+                  {formatDateTime(task.completed_at ?? task.created_at, language)}
                 </div>
 
                 {/* Status */}
