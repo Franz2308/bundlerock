@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag de release (opcional, ej: v0.2.4). Si se deja vacio, se usa la version de tauri.conf.json'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -20,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Setup Rust toolchain
@@ -34,27 +39,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate version consistency
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Resolve Release Tag and Version
+        id: vars
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}".TrimStart('v')
           $json = Get-Content "src-tauri/tauri.conf.json" | ConvertFrom-Json
-          if ($json.version -ne $tag) {
-            Write-Error "Tag version ($tag) does not match tauri.conf.json version ($($json.version))"
+          $appVersion = $json.version
+          $customTag = "${{ github.event.inputs.tag_name }}".Trim()
+
+          if ($customTag) {
+            $tag = $customTag
+          } elseif ($env:GITHUB_REF -like "refs/tags/*") {
+            $tag = $env:GITHUB_REF_NAME
+          } else {
+            $tag = "v$appVersion"
+          }
+
+          $expectedVersion = $tag.TrimStart('v')
+          if ($appVersion -ne $expectedVersion) {
+            Write-Error "Version mismatch: tauri.conf.json has '$appVersion' but release tag is '$tag'"
             exit 1
           }
-          Write-Host "Version validation passed: $tag"
+
+          Write-Host "Release target tag: $tag (version: $appVersion)"
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$appVersion" >> $env:GITHUB_OUTPUT
 
       - name: Build, sign and publish (installer + latest.json)
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'BundleRock ${{ github.ref_name }}'
+          tagName: ${{ steps.vars.outputs.tag }}
+          releaseName: 'BundleRock ${{ steps.vars.outputs.tag }}'
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
@@ -64,7 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "latest" }
+          $tag = "${{ steps.vars.outputs.tag }}"
           $portableName = "BundleRock_${tag}_x64_portable.exe"
           Copy-Item "src-tauri\target\release\bundlerock.exe" ".\$portableName" -Force
           $zipName = "browser-extension-${tag}.zip"
