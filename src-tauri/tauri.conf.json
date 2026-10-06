@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "BundleRock",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "identifier": "com.bundlerock.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -50,7 +50,10 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGMUVCQkJERjEyMzI0MDcKUldRSEpDUHh2YnNlNzlqcE5RUlF5eTZ0azU1bUUxUUZHVW01VFJUWTRvSW5zYldCeGVQYjZGc2sK",
       "endpoints": [
         "https://github.com/Franz2308/bundlerock/releases/latest/download/latest.json"
-      ]
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

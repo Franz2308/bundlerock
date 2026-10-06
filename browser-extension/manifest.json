@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BundleRock Downloader",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Descarga rápida con un clic derecho o botón flotante sobre videos mediante BundleRock (Estilo IDM).",
   "icons": {
     "16": "icons/icon16.png",

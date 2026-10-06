@@ -215,6 +215,12 @@ pub fn handle_second_instance(args: &[String]) -> bool {
             if !handle.is_null() && last_err == 183 {
                 let _ = CloseHandle(handle);
 
+                extern "system" {
+                    fn AllowSetForegroundWindow(dwProcessId: u32) -> i32;
+                }
+                const ASFW_ANY: u32 = 0xFFFFFFFF;
+                let _ = AllowSetForegroundWindow(ASFW_ANY);
+
                 let addr: SocketAddr = "127.0.0.1:18200".parse().unwrap();
                 // Primary instance is running or booting; retry connection for up to 3 seconds
                 for _ in 0..30 {

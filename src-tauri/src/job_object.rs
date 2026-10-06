@@ -89,7 +89,9 @@ pub fn init_process_job_object() {
         if !job.is_null() {
             let mut info: win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
             info.BasicLimitInformation.LimitFlags =
-                win32::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | win32::JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+                win32::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                | win32::JOB_OBJECT_LIMIT_BREAKAWAY_OK
+                | win32::JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
 
             let set_res = win32::SetInformationJobObject(
                 job,

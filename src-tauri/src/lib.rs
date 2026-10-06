@@ -111,9 +111,16 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let app = window.app_handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(mgr) = app.try_state::<DownloadManager>() {
+                        mgr.cancel_all_active().await;
+                        mgr.save_tasks().await;
+                    }
+                    app.exit(0);
+                    std::process::exit(0);
+                });
             }
         })
         .invoke_handler(tauri::generate_handler![

@@ -41,6 +41,31 @@ async fn handle_status() -> impl IntoResponse {
     })
 }
 
+pub fn focus_main_window(app_handle: &tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+
+        #[cfg(target_os = "windows")]
+        {
+            extern "system" {
+                fn SetForegroundWindow(hWnd: *mut std::ffi::c_void) -> i32;
+                fn ShowWindow(hWnd: *mut std::ffi::c_void, nCmdShow: i32) -> i32;
+            }
+            const SW_RESTORE: i32 = 9;
+            const SW_SHOW: i32 = 5;
+            if let Ok(hwnd) = window.hwnd() {
+                unsafe {
+                    ShowWindow(hwnd.0 as _, SW_RESTORE);
+                    ShowWindow(hwnd.0 as _, SW_SHOW);
+                    SetForegroundWindow(hwnd.0 as _);
+                }
+            }
+        }
+    }
+}
+
 async fn handle_download(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<DownloadRequest>,
@@ -50,13 +75,7 @@ async fn handle_download(
     }
 
     // Bring main window to front
-    if let Some(window) = state.app_handle.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.unminimize();
-        let _ = window.set_always_on_top(true);
-        let _ = window.set_focus();
-        let _ = window.set_always_on_top(false);
-    }
+    focus_main_window(&state.app_handle);
 
     // Emit event to React frontend
     if let Err(e) = state.app_handle.emit("external-download-request", &payload) {
@@ -74,13 +93,7 @@ async fn handle_download(
 }
 
 async fn handle_focus(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
-    if let Some(window) = state.app_handle.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.unminimize();
-        let _ = window.set_always_on_top(true);
-        let _ = window.set_focus();
-        let _ = window.set_always_on_top(false);
-    }
+    focus_main_window(&state.app_handle);
     StatusCode::OK
 }
 

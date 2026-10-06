@@ -1,6 +1,6 @@
 [package]
 name = "bundlerock"
-version = "0.2.5"
+version = "0.2.6"
 description = "BundleRock - Fast, multi-connection dynamic download manager"
 authors = ["Frank"]
 edition = "2021"

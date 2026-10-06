@@ -183,10 +183,16 @@ pub fn is_window_maximized(window: Window) -> Result<bool, String> {
     window.is_maximized().map_err(|e| e.to_string())
 }
 
-/// Hides the application window to system tray.
+/// Closes the application completely and exits.
 #[tauri::command]
-pub fn close_window(window: Window) -> Result<(), String> {
-    window.hide().map_err(|e| e.to_string())
+pub async fn close_window(
+    app: AppHandle,
+    manager: State<'_, DownloadManager>,
+) -> Result<(), String> {
+    manager.cancel_all_active().await;
+    manager.save_tasks().await;
+    app.exit(0);
+    std::process::exit(0);
 }
 
 /// Cancels any active URL probe in progress.
