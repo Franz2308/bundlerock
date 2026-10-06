@@ -101,7 +101,7 @@
 /* Unified Download List Grid */
 .download-grid {
   display: grid;
-  grid-template-columns: 36px minmax(180px, 1fr) 130px 110px 95px 95px;
+  grid-template-columns: 36px minmax(180px, 1fr) 130px 110px 120px 95px 95px;
   gap: 0.5rem;
   align-items: center;
 }

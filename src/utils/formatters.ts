@@ -153,3 +153,16 @@ export function formatResolutionLabel(res?: string | null, isImage = false): str
   }
   return trimmed;
 }
+
+/** Formats a unix-millis timestamp as a localized date + time (e.g. 05/10/2026 14:32:07). */
+export function formatDateTime(ms?: number | null, locale?: string): string {
+  if (!ms || isNaN(ms)) return '--';
+  return new Date(ms).toLocaleString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}

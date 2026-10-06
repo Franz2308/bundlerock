@@ -208,6 +208,7 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
               resolution: payload.resolution !== undefined ? payload.resolution : old.resolution,
               is_animated_gif: payload.is_animated_gif !== undefined ? payload.is_animated_gif : old.is_animated_gif,
               group_id: payload.group_id !== undefined ? payload.group_id : old.group_id,
+              completed_at: payload.completed_at !== undefined ? payload.completed_at : old.completed_at,
               updated_at: Date.now(),
             };
             return updated;
@@ -679,12 +680,13 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
                 }}
               />
             ) : viewMode === 'detailed' ? (
-              <div className="w-full h-full min-w-[690px]">
+              <div className="w-full h-full min-w-[820px]">
                 <div className="download-grid bg-slate-200 dark:bg-[#161f2e] border-b border-slate-300 dark:border-[#202b3d] p-1 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 z-10 mb-1 select-none">
                   <div className="text-center font-bold">{t('app.gridIndex')}</div>
                   <div className="min-w-0">{t('app.gridName')}</div>
                   <div className="min-w-0">{t('app.gridSize')}</div>
                   <div className="min-w-0 text-center">{t('app.gridSpeed')}</div>
+                  <div className="min-w-0 text-center">{t('app.gridDate')}</div>
                   <div className="min-w-0 text-center">{t('app.gridStatus')}</div>
                   <div className="min-w-0 text-center">{t('app.gridAction')}</div>
                 </div>

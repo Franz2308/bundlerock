@@ -407,6 +407,7 @@ impl DownloadManager {
         // If file is 0 bytes, mark completed immediately without network requests
         if let Some(0) = task.total_bytes {
             task.status = DownloadStatus::Completed;
+            task.completed_at = Some(now_millis());
             task.progress_percentage = 100.0;
             // Create empty file
             let _ = StorageFile::open_or_create(&destination_path, Some(0), true);
@@ -859,6 +860,7 @@ impl DownloadManager {
             if task.status != DownloadStatus::Failed && task.status != DownloadStatus::Cancelled {
                 if all_finished {
                     task.status = DownloadStatus::Completed;
+                    task.completed_at = Some(now_millis());
                     task.progress_percentage = 100.0;
                     task.speed_bps = 0;
                     if let Some(total) = task.total_bytes {
