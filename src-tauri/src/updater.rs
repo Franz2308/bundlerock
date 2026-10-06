@@ -105,6 +105,9 @@ pub async fn install_update(
     download_manager.cancel_all_active().await;
     download_manager.save_tasks().await;
 
+    // Remove KILL_ON_JOB_CLOSE from Job Object so installer process survives app exit
+    crate::job_object::disable_kill_on_close_for_update();
+
     let app_clone = app.clone();
     let mut downloaded: u64 = 0;
 

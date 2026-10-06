@@ -21,6 +21,7 @@ mod win32 {
 
     pub const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: DWORD = 0x00002000;
     pub const JOB_OBJECT_LIMIT_BREAKAWAY_OK: DWORD = 0x00000800;
+    pub const JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK: DWORD = 0x00001000;
     pub const JobObjectExtendedLimitInformation: DWORD = 9;
 
     #[repr(C)]
@@ -110,3 +111,27 @@ pub fn init_process_job_object() {
         }
     }
 }
+
+/// Disables KILL_ON_JOB_CLOSE before running the update installer.
+/// Ensures the installer process spawned by ShellExecuteW is not forcefully
+/// terminated when BundleRock calls exit(0) to apply the update.
+pub fn disable_kill_on_close_for_update() {
+    #[cfg(windows)]
+    unsafe {
+        let job = GLOBAL_JOB_HANDLE.load(std::sync::atomic::Ordering::SeqCst);
+        if !job.is_null() {
+            let mut info: win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+            info.BasicLimitInformation.LimitFlags =
+                win32::JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK | win32::JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+
+            let _ = win32::SetInformationJobObject(
+                job,
+                win32::JobObjectExtendedLimitInformation,
+                &info as *const _ as *const _,
+                std::mem::size_of::<win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+            );
+            println!("[job_object] Disabled KILL_ON_JOB_CLOSE for update installer survival");
+        }
+    }
+}
+
