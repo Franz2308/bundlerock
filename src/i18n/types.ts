@@ -259,5 +259,22 @@ export interface TranslationDictionary {
     defaultsTooltip: string;
     cancel: string;
     save: string;
+    autoCheckUpdates: string;
+    autoCheckUpdatesDesc: string;
+    checkUpdatesNow: string;
+    checkingUpdates: string;
+    upToDate: string;
+    updateAvailableNotice: string;
+  };
+  updater: {
+    updateAvailable: string;
+    newVersionAvailable: string;
+    updateAndRestart: string;
+    later: string;
+    viewReleaseNotes: string;
+    downloadingUpdate: string;
+    activeDownloadsWarning: string;
+    updateError: string;
+    retry: string;
   };
 }

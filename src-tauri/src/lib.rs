@@ -8,6 +8,7 @@ pub mod probe;
 pub mod protocol;
 pub mod server;
 pub mod storage;
+pub mod updater;
 
 use commands::*;
 use manager::DownloadManager;
@@ -28,11 +29,13 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Guarantee child processes terminate with parent via Windows Job Object
             job_object::init_process_job_object();
 
             app.manage(DownloadManager::new(app.handle().clone()));
+            app.manage(updater::UpdaterState::new());
 
             // Register Windows bundlerock:// protocol in HKCU
             protocol::register_windows_protocol();
@@ -137,7 +140,10 @@ pub fn run() {
             exit_app,
             get_clipboard_text,
             select_folder,
-            get_pending_protocol_url
+            get_pending_protocol_url,
+            updater::get_app_version,
+            updater::check_for_update,
+            updater::install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

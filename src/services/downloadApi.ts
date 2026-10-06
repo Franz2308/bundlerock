@@ -223,3 +223,42 @@ export async function getPendingProtocolUrl(): Promise<string | null> {
   }
 }
 
+export interface UpdateInfo {
+  available: boolean;
+  current_version: string;
+  version?: string;
+  body?: string;
+  date?: string;
+}
+
+export interface UpdateProgressPayload {
+  downloaded_bytes: number;
+  total_bytes: number | null;
+  percentage: number;
+}
+
+export async function getAppVersion(): Promise<string> {
+  try {
+    return await invoke<string>('get_app_version');
+  } catch (err) {
+    console.warn('Failed to get app version from Rust, fallback to 0.2.3:', err);
+    return '0.2.3';
+  }
+}
+
+export async function checkForUpdate(): Promise<UpdateInfo> {
+  return await invoke<UpdateInfo>('check_for_update');
+}
+
+export async function installUpdate(): Promise<void> {
+  return await invoke<void>('install_update');
+}
+
+export function onUpdateProgress(
+  callback: (payload: UpdateProgressPayload) => void
+): Promise<UnlistenFn> {
+  return listen<UpdateProgressPayload>('update-progress', (event) => {
+    callback(event.payload);
+  });
+}
+

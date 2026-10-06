@@ -28,7 +28,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
+    "createUpdaterArtifacts": true,
     "windows": {
       "nsis": {
         "installerHooks": "windows/hooks.nsh"
@@ -41,5 +44,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGMUVCQkJERjEyMzI0MDcKUldRSEpDUHh2YnNlNzlqcE5RUlF5eTZ0azU1bUUxUUZHVW01VFJUWTRvSW5zYldCeGVQYjZGc2sK",
+      "endpoints": [
+        "https://github.com/Franz2308/bundlerock/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

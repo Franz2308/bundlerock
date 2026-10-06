@@ -6,6 +6,7 @@ export interface AppSettings {
   defaultConnections: number;
   soundOnComplete: boolean;
   language: Language;
+  autoCheckUpdates: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultConnections: 8,
   soundOnComplete: false,
   language: 'en',
+  autoCheckUpdates: true,
 };
 
 export const SETTINGS_STORAGE_KEY = 'bundlerock_settings';
@@ -27,6 +29,7 @@ export const loadStoredSettings = (): AppSettings => {
       ...DEFAULT_SETTINGS,
       ...parsed,
       language: parsed.language === 'es' ? 'es' : 'en',
+      autoCheckUpdates: typeof parsed.autoCheckUpdates === 'boolean' ? parsed.autoCheckUpdates : true,
     };
   } catch {
     return DEFAULT_SETTINGS;

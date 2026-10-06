@@ -15,10 +15,12 @@ import {
   Download,
   Globe,
   FolderOpen,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { AppSettings, DEFAULT_SETTINGS, Language } from '../types/settings';
 import { useTranslation } from '../i18n';
-import { openExtensionFolder } from '../services/downloadApi';
+import { openExtensionFolder, getAppVersion, checkForUpdate } from '../services/downloadApi';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,12 +46,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'appearance' | 'language' | 'interface' | 'network' | 'browser' | 'about'>('appearance');
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
+  const [appVersion, setAppVersion] = useState('0.2.3');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<{
+    type: 'idle' | 'upToDate' | 'available' | 'error';
+    version?: string;
+    message?: string;
+  }>({ type: 'idle' });
 
   useEffect(() => {
     if (isOpen) {
       setTempSettings(settings);
+      setUpdateStatus({ type: 'idle' });
+      getAppVersion().then((v) => setAppVersion(v)).catch(() => {});
     }
   }, [isOpen, settings]);
+
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const res = await checkForUpdate();
+      if (res.available && res.version) {
+        setUpdateStatus({ type: 'available', version: res.version });
+      } else {
+        setUpdateStatus({ type: 'upToDate' });
+      }
+    } catch (err: unknown) {
+      console.error('Update check error:', err);
+      setUpdateStatus({
+        type: 'error',
+        message: typeof err === 'string' ? err : 'Error connecting to update server',
+      });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -498,18 +529,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {/* Tab: Acerca de */}
             {activeTab === 'about' && (
               <div className="space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                <div className="p-3 bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649]">
-                  <div className="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                    {t('settings.aboutTitle')}
+                <div className="p-3 bg-white dark:bg-[#17202f] border border-slate-300 dark:border-[#2a3649] space-y-3">
+                  <div>
+                    <div className="font-bold text-sm text-slate-900 dark:text-white mb-0.5">
+                      {t('settings.aboutTitle')}
+                    </div>
+                    <div className="text-[11px] font-mono text-sky-600 dark:text-sky-400 font-semibold mb-2">
+                      v{appVersion}
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-2">
+                      {t('settings.aboutDesc')}
+                    </p>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-[#232f42] pt-2">
+                      {t('settings.aboutTech')}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-                    {t('settings.aboutVersion')}
+
+                  {/* Auto-check switch */}
+                  <div className="border-t border-slate-200 dark:border-[#232f42] pt-3">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tempSettings.autoCheckUpdates}
+                        onChange={(e) =>
+                          setTempSettings({ ...tempSettings, autoCheckUpdates: e.target.checked })
+                        }
+                        className="mt-0.5 w-4 h-4 rounded text-blue-600 border-slate-300 dark:border-slate-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">
+                          {t('settings.autoCheckUpdates')}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          {t('settings.autoCheckUpdatesDesc')}
+                        </span>
+                      </div>
+                    </label>
                   </div>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-2">
-                    {t('settings.aboutDesc')}
-                  </p>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-[#232f42] pt-2">
-                    {t('settings.aboutTech')}
+
+                  {/* Check for updates button */}
+                  <div className="border-t border-slate-200 dark:border-[#232f42] pt-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCheckUpdate}
+                        disabled={isCheckingUpdate}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold border border-blue-800 flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                      >
+                        {isCheckingUpdate ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          {isCheckingUpdate
+                            ? t('settings.checkingUpdates')
+                            : t('settings.checkUpdatesNow')}
+                        </span>
+                      </button>
+
+                      {updateStatus.type === 'upToDate' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {t('settings.upToDate')}
+                        </span>
+                      )}
+
+                      {updateStatus.type === 'available' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 font-bold">
+                          <Download className="w-3.5 h-3.5" />
+                          {t('settings.updateAvailableNotice').replace('{version}', updateStatus.version || '')}
+                        </span>
+                      )}
+
+                      {updateStatus.type === 'error' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-rose-500 font-medium truncate max-w-[200px]" title={updateStatus.message}>
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          {updateStatus.message}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

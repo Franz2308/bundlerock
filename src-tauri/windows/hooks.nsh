@@ -4,7 +4,7 @@
 
 !macro NSIS_HOOK_PREINSTALL
   ; Terminate any running instances before installation or update
-  nsExec::Exec 'taskkill /F /IM BundleRock.exe /T'
+  nsExec::Exec 'taskkill /F /IM BundleRock.exe'
   nsExec::Exec 'taskkill /F /IM yt-dlp.exe /T'
   nsExec::Exec 'taskkill /F /IM ffmpeg.exe /T'
   Sleep 300

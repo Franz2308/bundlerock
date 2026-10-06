@@ -32,6 +32,8 @@ zip = "0.6"
 rfd = "0.17.2"
 axum = "0.8.9"
 tower-http = { version = "0.7.1", features = ["cors"] }
+tauri-plugin-updater = "2"
+time = { version = "0.3", features = ["formatting"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

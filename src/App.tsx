@@ -29,8 +29,11 @@ import {
   installExtractor,
   onExternalDownloadRequest,
   getPendingProtocolUrl,
+  checkForUpdate,
+  UpdateInfo,
 } from './services/downloadApi';
 import { TitleBar } from './components/TitleBar';
+import { UpdateBanner } from './components/UpdateBanner';
 import { SettingsModal } from './components/SettingsModal';
 import { AppSettings, loadStoredSettings, saveStoredSettings } from './types/settings';
 import { getFileCategory, formatSpeed } from './utils/formatters';
@@ -60,6 +63,29 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
     ytdlp_installed: false,
     ffmpeg_installed: false,
   });
+  const [availableUpdate, setAvailableUpdate] = useState<UpdateInfo | null>(null);
+
+  // Auto-check for updates silently on startup
+  useEffect(() => {
+    if (!settings.autoCheckUpdates) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const update = await checkForUpdate();
+        if (update.available && update.version) {
+          const dismissed = sessionStorage.getItem('bundlerock_dismissed_update');
+          if (dismissed !== update.version) {
+            setAvailableUpdate(update);
+          }
+        }
+      } catch (err) {
+        // Silent on boot, does not disrupt the user
+        console.debug('Background update check failed:', err);
+      }
+    }, 4500);
+
+    return () => clearTimeout(timer);
+  }, [settings.autoCheckUpdates]);
 
   // Listen for downloads requested from browser extension via local HTTP server or custom protocol
   useEffect(() => {
@@ -636,6 +662,19 @@ function AppContent({ settings, onSaveSettings }: AppContentProps) {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100 dark:bg-[#0c1017] text-slate-800 dark:text-slate-200 font-sans text-sm select-none">
       {/* Unified Custom Title Bar & Top Header (integrated Discord-like style) */}
       <TitleBar />
+
+      {availableUpdate && (
+        <UpdateBanner
+          updateInfo={availableUpdate}
+          onDismiss={() => {
+            if (availableUpdate?.version) {
+              sessionStorage.setItem('bundlerock_dismissed_update', availableUpdate.version);
+            }
+            setAvailableUpdate(null);
+          }}
+          activeDownloadsCount={totalActiveDownloads}
+        />
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
